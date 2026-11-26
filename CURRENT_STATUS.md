@@ -1,6 +1,6 @@
 # Current status
 
-_Last updated: 2026-11-26 (after the M2 commit and its documentation commit `f4d3349`)._
+_Last updated: 2026-11-26 (after the M2 commit and its documentation commits `f4d3349` and `3d281b6`)._
 
 ## Milestones
 
@@ -16,13 +16,16 @@ _Last updated: 2026-11-26 (after the M2 commit and its documentation commit `f4d
 
 _As recorded on 2026-11-26. Run `git log` and `git status` for the current state._
 
-- Branch `main`, with three local commits:
+- Branch `main`. Local commits as of this update, oldest first (run `git log` for any later ones):
   - `ac9e36b47feab8b9a58f1c3c82add8cdc6bbf853`, "M0 + M1: design docs and synthetic business backend".
   - `91f959b2110b8210a10efc3ad7e072c8e9cfae8b`, "M2: add hardened service operations MCP server"
     (69 files).
   - `f4d3349de364160a19af6551d53fb9d8ca564648`, "Docs: finalize M2 project handoff". It records the
     M2 commit in eight documentation files, including the migration 0005 docstring date; no source
     code, tests or SQL changed.
+  - `3d281b64f0c35e9c1c1e733bd78cf58f02bc2a00`, "Docs: correct project status and handoff". It
+    corrects the M2, M3 and GitHub status wording in six documentation files; no source code, tests
+    or SQL changed.
 - **GitHub push status is unverified.** `origin` is configured, but no push has been verified and no
   fetch has been performed, so the local repository has no remote-tracking information about
   GitHub. Whether GitHub holds any of these commits has not been checked.

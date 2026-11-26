@@ -1,22 +1,23 @@
 # Handoff
 
-_Last updated: 2026-11-26, after the M2 commit and its documentation commit `f4d3349`._
+_Last updated: 2026-11-26, after the M2 commit and its documentation commits `f4d3349` and `3d281b6`._
 
 ## Current state in one paragraph
 
 M0, M1 and M2 are completed, reviewed, approved and committed on `main`. M2 (the Service
 Operations MCP server) went through three independent security reviews, with every finding fixed
 or explicitly accepted. The owner approved it, and it was committed as `91f959b`. The
-documentation recording that was committed separately as `f4d3349`. GitHub push status is
-unverified: no push has been verified and no fetch has been performed. **M3 is NOT STARTED** and
-must not start until the owner approves it.
+documentation recording that was committed separately as `f4d3349` and corrected in `3d281b6`.
+GitHub push status is unverified: no push has been verified and no fetch has been performed.
+**M3 is NOT STARTED** and must not start until the owner approves it.
 
 ## Git
 
 | | |
 |---|---|
 | Branch | `main` (the only branch) |
-| Local commits | Three, oldest first: `ac9e36b`, `91f959b`, `f4d3349` |
+| Local commits | As of this update, oldest first: `ac9e36b`, `91f959b`, `f4d3349`, `3d281b6` (run `git log` for any later ones) |
+| Documentation correction commit | `3d281b64f0c35e9c1c1e733bd78cf58f02bc2a00`, "Docs: correct project status and handoff" (six documentation files; no source code, tests or SQL) |
 | Documentation commit | `f4d3349de364160a19af6551d53fb9d8ca564648`, "Docs: finalize M2 project handoff" (eight documentation files, including the migration 0005 docstring date; no source code, tests or SQL) |
 | M2 commit | `91f959b2110b8210a10efc3ad7e072c8e9cfae8b`, "M2: add hardened service operations MCP server" (69 files, +6,487 / −128) |
 | M0 + M1 commit | `ac9e36b47feab8b9a58f1c3c82add8cdc6bbf853`, "M0 + M1: design docs and synthetic business backend" |
@@ -100,12 +101,9 @@ not SHAs (OPEN-2).
 
 ## Decisions awaiting approval
 
-1. Whether to commit the six-file follow-up documentation correction (`README.md`,
-   `docs/implementation-plan.md`, `CURRENT_STATUS.md`, `HANDOFF.md`, `KNOWN_ISSUES.md`,
-   `PROJECT_CONTEXT.md`), if it is still uncommitted.
-2. Whether and when to push `main` to GitHub. No push has been verified; pushing would let CI run
+1. Whether and when to push `main` to GitHub. No push has been verified; pushing would let CI run
    there (OPEN-1).
-3. When to start M3, which is NOT STARTED.
+2. When to start M3, which is NOT STARTED.
 
 ## Exact next steps for another session
 
@@ -124,8 +122,8 @@ uv sync --locked && uv run python scripts/dev_bootstrap.py && uv run python scri
 uv run ruff check src tests scripts migrations && uv run ruff format --check src tests scripts migrations && uv run mypy && uv run lint-imports && uv run pytest -q
 ```
 
-3. Do not commit the six-file documentation correction (see "Decisions awaiting approval"), push or
-   fetch without the owner's approval. Do not amend or rewrite `ac9e36b`, `91f959b` or `f4d3349`.
+3. Do not commit uncommitted changes, push or fetch without the owner's approval. Do not amend or
+   rewrite `ac9e36b`, `91f959b`, `f4d3349` or `3d281b6`.
 4. **M3 is NOT STARTED. Only after the owner approves starting it:** follow the M3 section of
    [docs/implementation-plan.md](docs/implementation-plan.md) and the M3 obligations in ADR-013:
    - run tokens with minimum scopes;
