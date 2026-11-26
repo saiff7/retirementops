@@ -136,28 +136,40 @@ class PayrollMockReader:
         )
         with scoped_tx(self._engine, scope) as conn:
             rows = [dict(r) for r in conn.execute(stmt).mappings().all()]
-        return [
-            PayrollRow(
-                row_id=_int(r["row_id"]),
-                file_id=str(r["file_id"]),
-                participant_ref=str(r["participant_ref"]),
-                plan_id=str(r["plan_id"]),
-                tenant_id=str(r["tenant_id"]),
-                pay_period_id=str(r["pay_period_id"]),
-                eligible_pay=Money.from_cents(_int(r["eligible_pay_cents"])),
-                employee_contribution=Money.from_cents(_int(r["employee_contribution_cents"])),
-                employer_contribution=Money.from_cents(_int(r["employer_contribution_cents"])),
-                source=make_source(
-                    system=SYSTEM,
-                    record_type="payroll_row",
-                    record_id=f"{r['file_id']}#{r['row_id']}",
-                    record_version=1,
-                    payload=r,
-                    clock=self._clock,
-                ),
+        return [self._row(r) for r in rows]
+
+    def get_payroll_row(self, scope: TenantScope, file_id: str, row_id: int) -> PayrollRow | None:
+        stmt = select(payroll_rows).where(
+            and_(
+                payroll_rows.c.row_id == row_id,
+                payroll_rows.c.file_id == file_id,
+                payroll_rows.c.tenant_id.in_(sorted(scope.tenant_ids)),
             )
-            for r in rows
-        ]
+        )
+        with scoped_tx(self._engine, scope) as conn:
+            r = conn.execute(stmt).mappings().first()
+        return self._row(dict(r)) if r else None
+
+    def _row(self, r: dict[str, object]) -> PayrollRow:
+        return PayrollRow(
+            row_id=_int(r["row_id"]),
+            file_id=str(r["file_id"]),
+            participant_ref=str(r["participant_ref"]),
+            plan_id=str(r["plan_id"]),
+            tenant_id=str(r["tenant_id"]),
+            pay_period_id=str(r["pay_period_id"]),
+            eligible_pay=Money.from_cents(_int(r["eligible_pay_cents"])),
+            employee_contribution=Money.from_cents(_int(r["employee_contribution_cents"])),
+            employer_contribution=Money.from_cents(_int(r["employer_contribution_cents"])),
+            source=make_source(
+                system=SYSTEM,
+                record_type="payroll_row",
+                record_id=f"{r['file_id']}#{r['row_id']}",
+                record_version=1,
+                payload=r,
+                clock=self._clock,
+            ),
+        )
 
 
 class PayrollMockIngestor:

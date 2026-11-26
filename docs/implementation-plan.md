@@ -39,7 +39,7 @@ architecture, ADRs, and this plan.
 | §9 seed: 30–50 approved-answer passages with version, section, effective date and citation metadata (`documents`, `document_passages`) | **M7** | The passage schema has to match the citation format, expiry rules and retrieval tools designed in M7. Seeding it now would fix a schema before its only consumer exists, and likely mean a migration rewrite. |
 | §9 seed: 20–30 vendors across risk tiers, with findings (`vendors`, `vendor_findings`) | **M7** | Same reason: the deterministic vendor checks (overdue review, missing SOC report, stale evidence) set which fields and dates the seed needs. |
 | §9 tables `agent_runs`, `tool_calls`, `evidence_items` | M3 | Created with the orchestrator that writes them. |
-| §9 tables `drafts`, `action_proposals`, `approvals` | M5 | Created with the approval workflow and four-eyes rule (ADR-007). |
+| §9 table `approvals` | M5 | Created with the approval workflow, four-eyes rule (ADR-007) and the separate review role (ADR-013). `drafts` and `action_proposals` were created in M2 (ADR-013). |
 | §9 table `asset_registry` | M8 | Created with operations and handover. |
 
 M7's acceptance tests will include the §9 minimums: ≥30 passages, including one expired and one contradictory version, and ≥20 vendors across all risk tiers. The owner approved this placement on 2026-11-26.
@@ -84,7 +84,50 @@ M7, where they are used.
 - `test_upload_with_ssn_column_rejected_and_not_stored`
 - `lint-imports` passes, along with ruff and mypy (strict on `domain/`)
 
-### M2: Service Operations MCP server (Python)
+### M2: Service Operations MCP server (Python) ✅ (delivered 2026-11-26, awaiting review)
+
+**Delivered:** the ten spec §6 tools on MCP Python SDK 2.3 (low-level `Server`, ADR-013), over stdio
+and stateless Streamable HTTP. Includes Pydantic `extra="forbid"` inputs, scope-filtered
+`tools/list`, per-call scope checks, per-call logging and metrics, audited denials,
+`.mcp.json.example`, `scripts/dev_token.py`, a run guide in [mcp-service-ops.md](mcp-service-ops.md)
+and an [Inspector transcript](mcp-inspector-transcript.md).
+
+**Changes to earlier plans (documented in ADR-013):**
+- `app.drafts`, `app.draft_versions` and `app.action_proposals` were created in **M2, not M5**, because
+  M2's acceptance requires the create tools to write rows. Approvals stay in M5.
+- New mock system `servicekb_mock` (fictional service policies) for `get_policy_snippets`, with its
+  own role. The seed generator is now `seed-gen/2`, and the change is additive: tickets, cases and
+  payroll are unchanged.
+- Drafts are always `NEEDS_MANUAL_REVIEW` until the M3 validator exists. Evidence refs are verified
+  server-side already: existence, ticket tenant, content hash, policy in force, and the caller's
+  read scope for each cited record type. A reply must cite its own ticket.
+
+**Independent review fixes (2026-11-26, ADR-013):**
+- Migration 0003 adds database insert guards (initial states only; version 1 only, matching its
+  header), TRUNCATE triggers and a per-tenant draft idempotency key.
+- Evidence verification is scope-checked. Metrics keys are bounded. The SDK is pinned to `mcp>=2.3,<3`.
+- `[::1]` was added to the Host allowlist, and standard-library logs are now redacted.
+- Requester subjects carry the untrusted label, and bare 9-digit IDs are masked or refused.
+- There is a safe upgrade path (`scripts/db_upgrade.py`), a 0002 downgrade that revokes its grants,
+  a migration round-trip test, and [operations-migrations.md](operations-migrations.md).
+
+**Final review fixes (2026-11-26, ADR-013, migration 0004):**
+- Per-user idempotency keys; replay only for the same user; the evidence scope check runs before
+  any replay; `skill_version` is part of the replay comparison.
+- `created_by_kind` on draft headers, matched by version 1; M2 drafts are `NEEDS_MANUAL_REVIEW` only.
+- Pinned `search_path` on all guard functions (including M1's); `hide_parameters=True` on all
+  engines; runbook wording corrected.
+
+**Final hardening (2026-11-27):** migration 0005 pins `sec.tenant_scope()`'s `search_path`
+(behaviour, owner and grants unchanged; exact downgrade), with shadowing and RLS regression tests.
+
+**Carried into later milestones (from ADR-013):**
+- M3: server-side check of proposed queues against the rules engine; validator before insert;
+  minimum-scope run tokens; re-allow `PENDING_REVIEW` in `app.guard_draft_insert` in the same
+  migration as the validator.
+- M5: a separate database role for edits, status changes, approvals and execution; a
+  status-transition trigger; four-eyes over the authorship columns.
+
 **Build:** the `mcp_servers/service_ops` tools 1–10 from spec §6, Pydantic I/O, token → principal
 resolution, per-tool scope map, audit and metrics for each call, stdio + Streamable HTTP, and
 `.mcp.json.example`.

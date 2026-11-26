@@ -10,7 +10,7 @@ from __future__ import annotations
 import re
 from collections.abc import Sequence
 from dataclasses import dataclass
-from datetime import datetime
+from datetime import date, datetime
 from typing import Protocol
 
 from retirementops.domain.authz import TenantScope
@@ -22,6 +22,8 @@ from retirementops.domain.records import (
     PayrollRow,
     Plan,
     PlanRule,
+    PolicyCategory,
+    PolicySnippet,
     Tenant,
     Ticket,
 )
@@ -99,12 +101,20 @@ class PlanAdminReader(Protocol):
         self, scope: TenantScope, participant_ref: str, plan_id: str
     ) -> list[Enrollment]: ...
 
+    def get_plan_rule(self, scope: TenantScope, rule_id: str) -> PlanRule | None: ...
+
+    def get_enrollment(self, scope: TenantScope, enrollment_id: str) -> Enrollment | None: ...
+
 
 class PayrollReader(Protocol):
     def get_pay_period(self, pay_period_id: str) -> PayPeriod | None: ...
     def list_payroll_rows(
         self, scope: TenantScope, *, participant_ref: str, plan_id: str, pay_period_id: str
     ) -> list[PayrollRow]: ...
+
+    def get_payroll_row(
+        self, scope: TenantScope, file_id: str, row_id: int
+    ) -> PayrollRow | None: ...
 
 
 class PayrollIngestor(Protocol):
@@ -119,3 +129,13 @@ class PayrollIngestor(Protocol):
         rows: Sequence[ParsedPayrollRow],
         received_at: datetime,
     ) -> str: ...
+
+
+class PolicyKbReader(Protocol):
+    """Provider-wide fictional service policies. Read only; effective-dated retrieval."""
+
+    def search_snippets(
+        self, *, query: str | None, category: PolicyCategory | None, on: date, limit: int
+    ) -> list[PolicySnippet]: ...
+
+    def get_snippet(self, snippet_id: str) -> PolicySnippet | None: ...

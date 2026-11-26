@@ -42,6 +42,10 @@ set that value with `set_config(..., true)` (transaction-local, so it is safe wi
 from the **verified** principal's tenant assignments. When the setting is unset or empty, no rows are
 visible. That is the fail-closed default. The same policy is the `WITH CHECK` for inserts.
 
+Since migration 0005, `sec.tenant_scope()` pins `search_path = pg_catalog` and schema-qualifies
+everything it calls, so a caller's `search_path` cannot change how RLS resolves the scope (tested
+with a deliberate shadowing attack).
+
 Application code **also** filters by tenant explicitly. RLS is the second, independent layer, so one
 forgotten `WHERE` clause cannot leak another tenant's data.
 

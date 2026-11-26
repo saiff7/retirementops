@@ -128,3 +128,32 @@ class Ticket:
     updated_at: datetime
     version: int
     source: SourceRef
+
+
+class PolicyCategory(StrEnum):
+    CONTRIBUTIONS = "CONTRIBUTIONS"
+    PAYROLL_FILES = "PAYROLL_FILES"
+    ENROLLMENT = "ENROLLMENT"
+    ELIGIBILITY = "ELIGIBILITY"
+    PLAN_RULES = "PLAN_RULES"
+    PORTAL_ACCESS = "PORTAL_ACCESS"
+    PRIVACY = "PRIVACY"
+    COMMUNICATIONS = "COMMUNICATIONS"
+    ESCALATION = "ESCALATION"
+
+
+@dataclass(frozen=True, slots=True)
+class PolicySnippet:
+    """Fictional provider-wide service policy (not tenant data)."""
+
+    snippet_id: str
+    category: PolicyCategory
+    title: str
+    body: str
+    version: str
+    effective_from: date
+    effective_to: date | None
+    source: SourceRef
+
+    def is_effective_on(self, on: date) -> bool:
+        return effective_on(self.effective_from, self.effective_to, on)

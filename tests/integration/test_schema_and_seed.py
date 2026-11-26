@@ -3,9 +3,10 @@ from __future__ import annotations
 import pytest
 from sqlalchemy import Engine, MetaData, text
 
-from retirementops.connectors import payroll_mock, planadmin_mock, zendesk_mock
+from retirementops.connectors import payroll_mock, planadmin_mock, servicekb_mock, zendesk_mock
 from retirementops.governance import audit, identity
 from retirementops.seed.generator import Dataset
+from retirementops.store import workflow
 from tests.conftest import LOADED_DB_HASH
 
 pytestmark = pytest.mark.integration
@@ -66,6 +67,8 @@ def test_runtime_roles_cannot_bypass_anything(owner_engine: Engine, dataset: Dat
         zendesk_mock.metadata,
         planadmin_mock.metadata,
         payroll_mock.metadata,
+        servicekb_mock.metadata,
+        workflow.app_metadata,
         audit.app_metadata,
         identity.app_metadata,
     ],
@@ -86,3 +89,25 @@ def test_core_tables_match_database(owner_engine: Engine, dataset: Dataset, md: 
                 )
             }
             assert db_cols == set(t.c.keys()), t.fullname
+
+
+def test_app_tenant_tables_have_rls(owner_engine: Engine, dataset: Dataset) -> None:
+    """RetirementOps' own tenant-owned tables (drafts, proposals) are RLS-protected too.
+    audit_events is deliberately cross-tenant (system of record for all decisions)."""
+    with owner_engine.connect() as conn:
+        rows = (
+            conn.execute(
+                text("""
+            SELECT c.table_name, cl.relrowsecurity AS rls
+            FROM information_schema.columns c
+            JOIN pg_class cl ON cl.relname = c.table_name
+            JOIN pg_namespace n ON n.oid = cl.relnamespace AND n.nspname = c.table_schema
+            WHERE c.column_name = 'tenant_id' AND c.table_schema = 'app'
+        """)
+            )
+            .mappings()
+            .all()
+        )
+    tables = {r["table_name"]: r["rls"] for r in rows}
+    assert tables.pop("audit_events") is False
+    assert tables == {"drafts": True, "draft_versions": True, "action_proposals": True}

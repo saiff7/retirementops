@@ -25,18 +25,21 @@ RoleEngine = Callable[[DbRole], Engine]
 
 # Which schemas each runtime role may read at all.
 READABLE = {
-    DbRole.APP_SERVICE: {"app"},
+    DbRole.APP_SERVICE: {"app", "app_drafts"},
     DbRole.ZENDESK_READER: {"zendesk_mock"},
     DbRole.ZENDESK_WRITER: {"zendesk_mock"},
     DbRole.PLANADMIN_READER: {"planadmin_mock"},
     DbRole.PAYROLL_READER: {"payroll_mock"},
     DbRole.PAYROLL_INGEST: {"payroll_mock"},
+    DbRole.SERVICEKB_READER: {"servicekb_mock"},
 }
 PROBE_TABLE = {
     "app": "app.users",
     "zendesk_mock": "zendesk_mock.tickets",
     "planadmin_mock": "planadmin_mock.plans",
     "payroll_mock": "payroll_mock.payroll_rows",
+    "servicekb_mock": "servicekb_mock.policy_snippets",
+    "app_drafts": "app.drafts",
 }
 
 

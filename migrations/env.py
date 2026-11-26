@@ -17,7 +17,7 @@ def _db_name() -> str | None:
 
 
 def run_migrations_online() -> None:
-    engine = create_engine(get_settings().dsn(DbRole.OWNER, _db_name()))
+    engine = create_engine(get_settings().dsn(DbRole.OWNER, _db_name()), hide_parameters=True)
     with engine.connect() as connection:
         context.configure(
             connection=connection, target_metadata=None, transaction_per_migration=True

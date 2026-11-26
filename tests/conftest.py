@@ -9,6 +9,7 @@ from __future__ import annotations
 import io
 from collections.abc import Callable, Iterator
 from datetime import UTC, date, datetime
+from typing import Any
 
 import psycopg
 import pytest
@@ -207,3 +208,63 @@ def log_stream() -> Iterator[io.StringIO]:
 @pytest.fixture
 def d() -> Callable[[str], date]:
     return date.fromisoformat
+
+
+# ------------------------------------------------------------------ MCP (in-memory client)
+McpCall = Callable[..., dict[str, Any]]
+
+
+@pytest.fixture(scope="session")
+def mcp_call(container: Container, bearer: Callable[[str], dict[str, str]]) -> McpCall:
+    """Call an MCP tool as a seeded user through the real server over the SDK's in-memory client.
+
+    Returns {"is_error": bool, "data": structured_content, "text": first text block}.
+    """
+    import anyio
+    from mcp.client.client import Client
+
+    from retirementops.mcp_servers.service_ops.server import ServiceOpsMcp, TokenPrincipalSource
+
+    def call(user: str, tool: str, args: dict[str, Any] | None = None) -> dict[str, Any]:
+        token = bearer(user)["Authorization"].split()[1]
+        server = ServiceOpsMcp(container, TokenPrincipalSource(container, token))
+
+        async def go() -> dict[str, Any]:
+            async with Client(server.server) as client:
+                r = await client.call_tool(tool, args or {})
+                text = r.content[0].text if r.content else ""  # type: ignore[union-attr]
+                return {"is_error": bool(r.is_error), "data": r.structured_content, "text": text}
+
+        return anyio.run(go)
+
+    return call
+
+
+@pytest.fixture(scope="session")
+def mcp_tools(
+    container: Container, bearer: Callable[[str], dict[str, str]]
+) -> Callable[[str], list[str]]:
+    import anyio
+    from mcp.client.client import Client
+
+    from retirementops.mcp_servers.service_ops.server import ServiceOpsMcp, TokenPrincipalSource
+
+    def tools(user: str) -> list[str]:
+        token = bearer(user)["Authorization"].split()[1]
+        server = ServiceOpsMcp(container, TokenPrincipalSource(container, token))
+
+        async def go() -> list[str]:
+            async with Client(server.server) as client:
+                return sorted(t.name for t in (await client.list_tools()).tools)
+
+        return anyio.run(go)
+
+    return tools
+
+
+@pytest.fixture(autouse=True)
+def _reset_logging() -> Iterator[None]:
+    """Some tests configure global logging onto pytest's captured streams (e.g. the CLI entry
+    point). Point it back at a private sink afterwards so closed streams never leak across tests."""
+    yield
+    configure_logging(b"test-pepper", stream=io.StringIO())

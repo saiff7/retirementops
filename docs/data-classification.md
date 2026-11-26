@@ -27,14 +27,16 @@
 | `enrollment.status`, `enrollment.deferral_pct`, `effective_date` | Confidential | Yes | Yes | No | |
 | `payroll_row.eligible_pay_cents` | **Restricted** | Yes, to authorised tenant scope | Yes, as a formatted value from the finding only | No | Compensation data |
 | `payroll_row.employee_contribution_cents`, `employer_contribution_cents` | **Restricted** | Yes | Yes (formatted, from finding) | No | |
-| `ticket.subject`, `ticket.body`, comments | Confidential, and **untrusted input** | Yes | Yes, delimited as untrusted | No (hash + length only) | May contain injected instructions or pasted PII |
+| `ticket.subject`, `ticket.body`, comments | Confidential, and **untrusted input** | Yes. Via MCP: wrapped as `UNTRUSTED_REQUESTER_TEXT`, SSN-like patterns masked | Yes, delimited as untrusted | No (hash + length only) | May contain injected instructions or pasted PII |
 | `ticket.requester_email` | Confidential | No | No | No | Synthetic `@example.test` |
 | `document_passage.text` (playbook) | Internal | Yes | Yes | Passage ID | Approved language |
 | `vendor.*`, `vendor_finding.*` | Confidential | Yes | Yes | IDs | |
-| `draft.body` | Confidential | Yes (to reviewers) | n/a | Hash + version | |
+| `draft.body` | Confidential | Yes (to reviewers) | n/a | Hash + version | Must not contain SSN-like patterns (rejected at creation) |
+| `policy_snippet.*` | Internal | Yes | Yes | Snippet ID | Fictional, provider-wide |
+| `action_proposal.rationale` | Confidential | Yes (to reviewers) | n/a | No | Bounded to 1000 chars; SSN-like patterns rejected |
 | Access tokens, API keys, signing keys, DB passwords | **Restricted (secret)** | Never | Never | Never (redacted) | Environment / Wrangler secrets only |
 | `principal.id`, `role`, `scopes` | Internal | n/a | No | Yes | |
-| Client network address | Confidential (personal data) | n/a | No | Pseudonym only | Rate-limit key; never stored raw |
+| Client network address | Confidential (personal data) | n/a | No | Pseudonym only; raw IPv4 scrubbed from third-party log lines | Rate-limit key; never stored raw |
 | `correlation_id`, `run_id` | Internal | Yes | No | Yes | |
 
 ## Controls tied to classification
@@ -45,7 +47,7 @@
 2. **Prompt minimisation.** The orchestrator builds prompts from the evidence bundle's minimised view,
    not from raw connector records. Monetary values reach the model only as preformatted strings taken from
    the deterministic finding.
-3. **Log redaction.** A structured-logging processor drops any key in a deny set (`body`, `text`,
+3. **Log redaction** (structlog and standard-library loggers alike, including passwords in connection URLs and IPv4 addresses). A structured-logging processor drops any key in a deny set (`body`, `text`,
    `token`, `authorization`, `*_cents`, `email`, ...) and hashes participant refs. A test asserts that
    seeded canary values (a fake token, a canary ticket body) never appear in captured logs.
 4. **Upload rejection.** Synthetic payroll CSV upload (Milestone 1+) checks headers against an allowlist

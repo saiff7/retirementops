@@ -93,7 +93,7 @@ connectors, so every agent data access passes the same authorisation checks as a
 | `admin:ops` | | | | ✓ | |
 
 `compliance:approve` is added to the spec's scope list so that compliance approval is not the same
-permission as service approval. `payroll:ingest` (operators only) covers synthetic payroll file
+permission as service approval. Service-ops policy snippets (M2) are read with `tickets:read`. `payroll:ingest` (operators only) covers synthetic payroll file
 upload. `tests/unit/test_authz_matrix.py` parses this table and fails if it drifts from
 `domain/authz.py`.
 
@@ -144,8 +144,8 @@ Any exception, timeout, budget overrun or malformed model output moves the run f
 
 ```mermaid
 stateDiagram-v2
-    [*] --> PENDING_REVIEW: agent v1
-    [*] --> NEEDS_MANUAL_REVIEW: agent v1 (validator fail)
+    [*] --> PENDING_REVIEW: agent v1 (validator pass, M3+)
+    [*] --> NEEDS_MANUAL_REVIEW: agent v1 (validator fail, or no validator yet: always in M2)
     NEEDS_MANUAL_REVIEW --> PENDING_REVIEW: human edit → v n+1
     PENDING_REVIEW --> PENDING_REVIEW: human edit → v n+1 (old version SUPERSEDED)
     PENDING_REVIEW --> APPROVED: reviewer approves exact version+hash
@@ -204,7 +204,8 @@ retirementops/
     connectors/              # interfaces + mock adapters (one module per mock system)
     services/                # application services: tickets, drafts, approvals, execution
     api/                     # FastAPI routes, auth dependencies
-    mcp_servers/             # service_ops/, compliance/ — separate registries and scopes
+    store/                   # RetirementOps workflow records: drafts, proposals (app schema)
+    mcp_servers/             # service_ops/ (M2); compliance/ (M7) — separate registries and scopes
     mcp_client/              # client used by agent_runtime
     agent_runtime/           # providers, orchestrator, skill loader, guardrails
     governance/              # audit chain, asset registry, policy, kill switch

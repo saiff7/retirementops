@@ -159,6 +159,23 @@ class PlanAdminMockReader:
             self._src("plan", str(row["plan_id"]), row),
         )
 
+    def _rule(self, r: dict[str, object]) -> PlanRule:
+        return PlanRule(
+            rule_id=str(r["rule_id"]),
+            plan_id=str(r["plan_id"]),
+            tenant_id=str(r["tenant_id"]),
+            contribution_type=ContributionType(str(r["contribution_type"])),
+            rule_version=str(r["rule_version"]),
+            formula_code=str(r["formula_code"]),
+            max_deferral_pct=_dec(r["max_deferral_pct"]),
+            match_rate=_dec(r["match_rate"]),
+            match_cap_pct=_dec(r["match_cap_pct"]),
+            rounding=str(r["rounding"]),
+            effective_from=_date(r["effective_from"]),
+            effective_to=_date(r["effective_to"]) if r["effective_to"] else None,
+            source=self._src("plan_rule", str(r["rule_id"]), r),
+        )
+
     def list_plan_rules(self, scope: TenantScope, plan_id: str) -> list[PlanRule]:
         stmt = (
             select(plan_rules)
@@ -169,24 +186,15 @@ class PlanAdminMockReader:
         )
         with scoped_tx(self._engine, scope) as conn:
             rows = [dict(r) for r in conn.execute(stmt).mappings().all()]
-        return [
-            PlanRule(
-                rule_id=str(r["rule_id"]),
-                plan_id=str(r["plan_id"]),
-                tenant_id=str(r["tenant_id"]),
-                contribution_type=ContributionType(str(r["contribution_type"])),
-                rule_version=str(r["rule_version"]),
-                formula_code=str(r["formula_code"]),
-                max_deferral_pct=_dec(r["max_deferral_pct"]),
-                match_rate=_dec(r["match_rate"]),
-                match_cap_pct=_dec(r["match_cap_pct"]),
-                rounding=str(r["rounding"]),
-                effective_from=_date(r["effective_from"]),
-                effective_to=_date(r["effective_to"]) if r["effective_to"] else None,
-                source=self._src("plan_rule", str(r["rule_id"]), r),
-            )
-            for r in rows
-        ]
+        return [self._rule(r) for r in rows]
+
+    def get_plan_rule(self, scope: TenantScope, rule_id: str) -> PlanRule | None:
+        stmt = select(plan_rules).where(
+            and_(plan_rules.c.rule_id == rule_id, self._in_scope(plan_rules, scope))
+        )
+        with scoped_tx(self._engine, scope) as conn:
+            r = conn.execute(stmt).mappings().first()
+        return self._rule(dict(r)) if r else None
 
     def _participant(self, row: dict[str, object]) -> Participant:
         # employer_employee_ref is deliberately not exposed in the DTO (minimisation).
@@ -240,22 +248,28 @@ class PlanAdminMockReader:
         )
         with scoped_tx(self._engine, scope) as conn:
             rows = [dict(r) for r in conn.execute(stmt).mappings().all()]
-        out: list[Enrollment] = []
-        for r in rows:
-            pct = _dec(r["deferral_pct"])
-            if pct is None:
-                raise TypeError("deferral_pct is NOT NULL")
-            out.append(
-                Enrollment(
-                    enrollment_id=str(r["enrollment_id"]),
-                    participant_ref=str(r["participant_ref"]),
-                    plan_id=str(r["plan_id"]),
-                    tenant_id=str(r["tenant_id"]),
-                    status=EnrollmentStatus(str(r["status"])),
-                    deferral_pct=pct,
-                    effective_from=_date(r["effective_from"]),
-                    effective_to=_date(r["effective_to"]) if r["effective_to"] else None,
-                    source=self._src("enrollment", str(r["enrollment_id"]), r),
-                )
-            )
-        return out
+        return [self._enrollment(r) for r in rows]
+
+    def get_enrollment(self, scope: TenantScope, enrollment_id: str) -> Enrollment | None:
+        stmt = select(enrollments).where(
+            and_(enrollments.c.enrollment_id == enrollment_id, self._in_scope(enrollments, scope))
+        )
+        with scoped_tx(self._engine, scope) as conn:
+            r = conn.execute(stmt).mappings().first()
+        return self._enrollment(dict(r)) if r else None
+
+    def _enrollment(self, r: dict[str, object]) -> Enrollment:
+        pct = _dec(r["deferral_pct"])
+        if pct is None:
+            raise TypeError("deferral_pct is NOT NULL")
+        return Enrollment(
+            enrollment_id=str(r["enrollment_id"]),
+            participant_ref=str(r["participant_ref"]),
+            plan_id=str(r["plan_id"]),
+            tenant_id=str(r["tenant_id"]),
+            status=EnrollmentStatus(str(r["status"])),
+            deferral_pct=pct,
+            effective_from=_date(r["effective_from"]),
+            effective_to=_date(r["effective_to"]) if r["effective_to"] else None,
+            source=self._src("enrollment", str(r["enrollment_id"]), r),
+        )

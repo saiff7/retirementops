@@ -12,6 +12,7 @@ from retirementops.clock import Clock, utc_now
 from retirementops.config import DbRole, Settings
 from retirementops.connectors.payroll_mock import PayrollMockIngestor, PayrollMockReader
 from retirementops.connectors.planadmin_mock import PlanAdminMockReader
+from retirementops.connectors.servicekb_mock import PolicyKbMockReader
 from retirementops.connectors.zendesk_mock import ZendeskMockReader
 from retirementops.db.engines import make_runtime_engines
 from retirementops.governance.audit import AuditLog
@@ -20,9 +21,13 @@ from retirementops.governance.pseudonym import Pseudonymiser
 from retirementops.governance.tokens import TokenService
 from retirementops.services.audit_service import AuditService
 from retirementops.services.business import ContributionService, PlanService, TicketService
+from retirementops.services.drafting import DraftingService
+from retirementops.services.evidence import EvidenceVerifier
 from retirementops.services.identity import IdentityService
 from retirementops.services.payroll_ingest import PayrollIngestService
+from retirementops.services.policy import PolicyService
 from retirementops.services.request_guard import GuardConfig, RequestGuard
+from retirementops.store.workflow import WorkflowStore
 
 
 @dataclass
@@ -34,6 +39,8 @@ class Container:
     contributions: ContributionService
     payroll_ingest: PayrollIngestService
     guard: RequestGuard
+    policies: PolicyService
+    drafting: DraftingService
     log_pepper: bytes
     engines: dict[DbRole, Engine] = field(repr=False)
 
@@ -82,6 +89,17 @@ def build_container(
         Pseudonymiser(settings.ro_audit_pepper.get_secret_value().encode()),
     )
     plans = PlanService(planadmin)
+    tickets = ZendeskMockReader(engines[DbRole.ZENDESK_READER], clock)
+    kb = PolicyKbMockReader(engines[DbRole.SERVICEKB_READER], clock)
+    drafting = DraftingService(
+        tickets=tickets,
+        evidence=EvidenceVerifier(
+            tickets=tickets, planadmin=planadmin, payroll=payroll, policies=kb
+        ),
+        store=WorkflowStore(engines[DbRole.APP_SERVICE], clock),
+        audit=audit,
+        clock=clock,
+    )
     return Container(
         identity=IdentityService(
             tokens or token_service_from_settings(settings),
@@ -89,7 +107,9 @@ def build_container(
             dev_mode=settings.retirementops_env == "dev",
         ),
         audit=audit,
-        tickets=TicketService(ZendeskMockReader(engines[DbRole.ZENDESK_READER], clock)),
+        tickets=TicketService(tickets),
+        policies=PolicyService(kb, clock),
+        drafting=drafting,
         plans=plans,
         contributions=ContributionService(plans, planadmin, payroll),
         payroll_ingest=PayrollIngestService(

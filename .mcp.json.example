@@ -1,0 +1,12 @@
+{
+  "mcpServers": {
+    "retirementops-service-ops": {
+      "type": "stdio",
+      "command": "uv",
+      "args": ["run", "python", "-m", "retirementops.mcp_servers.service_ops"],
+      "env": {
+        "RETIREMENTOPS_MCP_TOKEN": "paste output of: uv run python scripts/dev_token.py op.alex (expires in 15 min; synthetic data only)"
+      }
+    }
+  }
+}

@@ -25,7 +25,7 @@ from retirementops.domain.ids import payroll_file_id
 from retirementops.domain.money import Money
 from retirementops.domain.taxonomy import DEFAULT_ROUTING, Intent, Queue
 
-GENERATOR_VERSION = "seed-gen/1"
+GENERATOR_VERSION = "seed-gen/2"  # /2 adds servicekb_mock.policy_snippets (M2)
 DEFAULT_SEED = 42
 P4 = Decimal("0.0001")
 OPEN_FROM = date(2025, 1, 1)
@@ -45,6 +45,7 @@ TABLE_ORDER = (
     "zendesk_mock.tickets",
     "zendesk_mock.ticket_comments",
     "zendesk_mock.ticket_events",
+    "servicekb_mock.policy_snippets",
     "app.users",
 )
 
@@ -141,6 +142,167 @@ USERS: tuple[tuple[str, str, str, list[str], list[str]], ...] = (
         ["TEN-ALDER", "TEN-BIRCH", "TEN-COBALT"],
     ),
     ("agent.worker", "Service Ops AI worker", "service", ["agent_service"], []),
+)
+
+# Fictional service-operations policies (provider-wide). POL-002 is an expired earlier version of
+# POL-001, and POL-016 is not yet in force: retrieval must return only versions effective today.
+_POLICY_FROM = date(2025, 1, 1)
+_V2_FROM = date(2026, 3, 1)
+POLICY_SNIPPETS: tuple[tuple[str, str, str, str, date, date | None, str], ...] = (
+    (
+        "POL-001",
+        "CONTRIBUTIONS",
+        "Investigating a contribution discrepancy",
+        "v2",
+        _V2_FROM,
+        None,
+        "Retrieve the enrollment, the plan rule in force on the pay period end date and the payroll row. "
+        "The expected amount is calculated by the system, never by hand or by the assistant. Report the "
+        "expected amount, the reported amount and the variance exactly as calculated, with evidence.",
+    ),
+    (
+        "POL-002",
+        "CONTRIBUTIONS",
+        "Investigating a contribution discrepancy",
+        "v1",
+        _POLICY_FROM,
+        _V2_FROM,
+        "SUPERSEDED. Compare the payroll file with the current plan rule.",
+    ),
+    (
+        "POL-003",
+        "PAYROLL_FILES",
+        "Missing or duplicate payroll rows",
+        "v1",
+        _POLICY_FROM,
+        None,
+        "If no payroll row exists for the period, do not state an amount. Ask the sponsor to confirm the "
+        "file was sent. If more than one row exists, route to payroll operations for review.",
+    ),
+    (
+        "POL-004",
+        "PAYROLL_FILES",
+        "Rejected payroll file format",
+        "v1",
+        _POLICY_FROM,
+        None,
+        "Explain the required columns. Never ask the sponsor to include names, dates of birth, government "
+        "identifiers or bank details in a payroll file.",
+    ),
+    (
+        "POL-005",
+        "ENROLLMENT",
+        "Confirming enrollment status",
+        "v1",
+        _POLICY_FROM,
+        None,
+        "State the enrollment status and deferral rate on file and their effective dates. Changes to "
+        "elections are made by the participant through the plan's own process, never by support.",
+    ),
+    (
+        "POL-006",
+        "ELIGIBILITY",
+        "Eligibility questions",
+        "v1",
+        _POLICY_FROM,
+        None,
+        "Eligibility is defined by the plan rules. Quote the rule and route to plan administration when "
+        "the answer depends on an individual's circumstances.",
+    ),
+    (
+        "POL-007",
+        "PLAN_RULES",
+        "Quoting plan rules",
+        "v1",
+        _POLICY_FROM,
+        None,
+        "Quote only the rule version in force on the relevant date, including its version and effective "
+        "dates. All rules in this demonstration are fictional.",
+    ),
+    (
+        "POL-008",
+        "PORTAL_ACCESS",
+        "Portal access and password resets",
+        "v1",
+        _POLICY_FROM,
+        None,
+        "Direct users to the self-service reset. Support never asks for or accepts passwords.",
+    ),
+    (
+        "POL-009",
+        "PRIVACY",
+        "Government identifiers",
+        "v1",
+        _POLICY_FROM,
+        None,
+        "Never request, repeat or store a government identifier. If one appears in a ticket, do not quote "
+        "it, and route the ticket to human triage.",
+    ),
+    (
+        "POL-010",
+        "PRIVACY",
+        "Minimum necessary information",
+        "v1",
+        _POLICY_FROM,
+        None,
+        "Refer to participants by their plan reference only and include only the facts needed to answer.",
+    ),
+    (
+        "POL-011",
+        "COMMUNICATIONS",
+        "Replies require human approval",
+        "v1",
+        _POLICY_FROM,
+        None,
+        "Every external reply is a draft until a human reviewer approves the exact version.",
+    ),
+    (
+        "POL-012",
+        "COMMUNICATIONS",
+        "No commitments about corrections or refunds",
+        "v1",
+        _POLICY_FROM,
+        None,
+        "Do not promise corrections, refunds, transfers or timelines. Describe the finding and the "
+        "next step, and state that the responsible team will follow up.",
+    ),
+    (
+        "POL-013",
+        "ESCALATION",
+        "Legal matters and complaints",
+        "v1",
+        _POLICY_FROM,
+        None,
+        "Court orders, legal questions and formal complaints go to human triage without a drafted reply.",
+    ),
+    (
+        "POL-014",
+        "ESCALATION",
+        "Ticket closure",
+        "v1",
+        _POLICY_FROM,
+        None,
+        "Tickets are closed only by a person in the ticketing system, never by automation.",
+    ),
+    (
+        "POL-015",
+        "CONTRIBUTIONS",
+        "Rounding and variance reporting",
+        "v1",
+        _POLICY_FROM,
+        None,
+        "Amounts are rounded once to cents using the plan's fictional rounding rule. Any variance, "
+        "including one cent, is reported as a discrepancy.",
+    ),
+    (
+        "POL-016",
+        "COMMUNICATIONS",
+        "Updated reply template",
+        "v1",
+        date(2099, 1, 1),
+        None,
+        "NOT YET EFFECTIVE. Future reply template.",
+    ),
 )
 
 HUMAN_TRIAGE_FLAGS = frozenset(
@@ -655,6 +817,21 @@ def generate(seed: int = DEFAULT_SEED) -> Dataset:
                 "actor_kind": "requester",
                 "occurred_at": created,
                 "details": {"channel": tk["channel"]},
+            }
+        )
+
+    for sid, cat, title, ver, f, t, body in POLICY_SNIPPETS:
+        tables["servicekb_mock.policy_snippets"].append(
+            {
+                "snippet_id": sid,
+                "category": cat,
+                "title": title,
+                "body": body,
+                "version": ver,
+                "effective_from": f,
+                "effective_to": t,
+                "is_fictional": True,
+                "record_version": 1,
             }
         )
 

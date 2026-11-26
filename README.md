@@ -18,7 +18,15 @@ draft versions, evaluation gates, audit and handover.
 |---|---|
 | M0 Discovery & design | Done, approved 2026-11-26 |
 | M1 Synthetic business backend | Done, approved 2026-11-26 |
-| M2–M8 | Not started |
+| M2 Service Operations MCP server | **Done, awaiting review** |
+| M3–M8 | Not started |
+
+Project state for humans and AI sessions:
+- [PROJECT_CONTEXT.md](PROJECT_CONTEXT.md)
+- [DECISIONS.md](DECISIONS.md)
+- [CURRENT_STATUS.md](CURRENT_STATUS.md)
+- [KNOWN_ISSUES.md](KNOWN_ISSUES.md)
+- [HANDOFF.md](HANDOFF.md)
 
 ## Quickstart (local)
 
@@ -41,8 +49,11 @@ docker compose up -d --wait db
 uv run python scripts/seed.py --seed 42 --reset
 ```
 
+To upgrade an existing database in place instead (keeps data), run `uv run python scripts/db_upgrade.py`.
+See [operations-migrations.md](docs/operations-migrations.md).
+
 ```bash
-uv run uvicorn retirementops.api.main:create --factory --host 127.0.0.1 --port 8000
+uv run uvicorn retirementops.api.main:create --factory --host 127.0.0.1 --port 8000 --no-access-log
 ```
 
 `dev_bootstrap.py` writes `.env` with random local secrets and a dev JWT keypair in `keys/`. Both are
@@ -76,6 +87,13 @@ uv run ruff check src tests scripts migrations && uv run ruff format --check src
 - **Hash-chained, append-only audit log**. It is tamper-evident, not immutable (ADR-009). Identifiers are pseudonymised, and anonymous write volume is bounded (ADR-012).
 - **Rate limiting**: per client, per principal, and a failed-authentication block that applies before any database work (ADR-012).
 - **Structured logs** with redaction and pseudonymised participant refs.
+
+## MCP server (M2)
+
+Ten narrow Service Operations tools over stdio and Streamable HTTP, with scope-filtered discovery,
+server-side validation, tenant isolation, verified evidence, and drafts and proposals that never
+send or assign. See [docs/mcp-service-ops.md](docs/mcp-service-ops.md) and the
+[Inspector transcript](docs/mcp-inspector-transcript.md).
 
 ## Design docs
 

@@ -56,7 +56,9 @@ def main() -> int:
     upgrade_head(db_name)
     ds = generate(args.seed)
     owner = create_engine(
-        settings.dsn(DbRole.OWNER, db_name), connect_args={"options": "-c timezone=UTC"}
+        settings.dsn(DbRole.OWNER, db_name),
+        connect_args={"options": "-c timezone=UTC"},
+        hide_parameters=True,
     )
     try:
         load_dataset(owner, ds)

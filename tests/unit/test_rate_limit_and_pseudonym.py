@@ -74,3 +74,75 @@ def test_audit_log_refuses_raw_identifiers_before_touching_db() -> None:
     ):
         with pytest.raises(ValueError, match="raw identifier"):
             log.append(event)
+
+
+# ---------------------------------------------------------------- M2 review regressions (no DB)
+def test_low5_stdlib_and_third_party_logs_are_redacted() -> None:
+    import io
+    import logging
+
+    from retirementops.governance.logging import configure_logging
+
+    stream = io.StringIO()
+    configure_logging(b"k" * 16, stream=stream)
+    try:
+        raise RuntimeError(
+            "connect postgresql+psycopg://app_service:S3cretPw@127.0.0.1:55432/x "
+            "for PART-0001 ssn 000-12-3456"
+        )
+    except RuntimeError:
+        logging.getLogger("mcp.server.runner").exception("modern request handler raised")
+    logging.getLogger("uvicorn.error").warning("client 203.0.113.9 disconnected")
+    out = stream.getvalue()
+    for secret in ("S3cretPw", "PART-0001", "000-12-3456", "127.0.0.1", "203.0.113.9"):
+        assert secret not in out, secret
+    assert out.count("\n") == 2 and '"logger": "mcp.server.runner"' in out
+
+
+def test_low9_restricted_masking_covers_bare_nine_digits() -> None:
+    from retirementops.governance.pseudonym import contains_restricted, mask_restricted
+
+    assert contains_restricted("TIN 123456789") and contains_restricted("ssn 000-12-3456")
+    assert not contains_restricted("amount 1234567.89 and ref 1234567890")  # decimals / 10 digits
+    assert mask_restricted("a 123456789 b 000-12-3456") == "a [REDACTED_ID] b [REDACTED_SSN]"
+
+
+def test_m1_verifier_never_reads_records_the_caller_cannot_read() -> None:
+    from datetime import date
+
+    from retirementops.domain.authz import Scope
+    from retirementops.services.errors import InvalidRequest
+    from retirementops.services.evidence import EvidenceRef, EvidenceVerifier
+
+    class Exploding:
+        def __getattr__(self, name: str) -> object:
+            raise AssertionError(f"connector touched: {name}")
+
+    v = EvidenceVerifier(
+        tickets=Exploding(),
+        planadmin=Exploding(),  # type: ignore[arg-type]
+        payroll=Exploding(),
+        policies=Exploding(),
+    )  # type: ignore[arg-type]
+    refs = [
+        EvidenceRef("payroll_mock", "payroll_row", "PF-0123456789AB#1", "0" * 64),
+        EvidenceRef("planadmin_mock", "plan_rule", "RULE-001", "0" * 64),
+    ]
+    with pytest.raises(InvalidRequest, match="not readable by this caller"):
+        v.verify(
+            refs,
+            tenant_id="TEN-ALDER",
+            today=date(2026, 5, 1),
+            caller_scopes=frozenset({Scope.TICKETS_READ}),
+        )
+
+
+def test_m3_mcp_dependency_is_pinned_to_the_2x_api() -> None:
+    import tomllib
+    from importlib.metadata import version
+
+    from retirementops.config import ROOT
+
+    deps = tomllib.loads((ROOT / "pyproject.toml").read_text())["project"]["dependencies"]
+    assert any(d.startswith("mcp>=2.3,<3") for d in deps)
+    assert version("mcp").split(".")[0] == "2"

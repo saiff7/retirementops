@@ -22,6 +22,7 @@ class DbRole(StrEnum):
     PLANADMIN_READER = "svc_planadmin_reader"
     PAYROLL_READER = "svc_payroll_reader"
     PAYROLL_INGEST = "svc_payroll_ingest"
+    SERVICEKB_READER = "svc_servicekb_reader"
 
 
 RUNTIME_ROLES: tuple[DbRole, ...] = tuple(r for r in DbRole if r is not DbRole.OWNER)
@@ -45,6 +46,7 @@ class Settings(BaseSettings):
     ro_pw_svc_planadmin_reader: SecretStr
     ro_pw_svc_payroll_reader: SecretStr
     ro_pw_svc_payroll_ingest: SecretStr
+    ro_pw_svc_servicekb_reader: SecretStr
 
     ro_jwt_private_key_path: Path = Path("keys/dev_jwt_private.pem")
     ro_jwt_public_key_path: Path = Path("keys/dev_jwt_public.pem")

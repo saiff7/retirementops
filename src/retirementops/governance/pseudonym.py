@@ -17,6 +17,20 @@ from typing import Any
 PARTICIPANT_REF = re.compile(r"PART-\d{4}")
 EMPLOYEE_REF = re.compile(r"E-\d{5}")
 SSN_LIKE = re.compile(r"(?<!\d)\d{3}-\d{2}-\d{4}(?!\d)")
+# Unformatted 9-digit runs (possible SSN/TIN). Excludes digits inside decimals or longer numbers.
+NINE_DIGITS = re.compile(r"(?<![\d.])\d{9}(?![\d.])")
+REDACTED_ID = "[REDACTED_ID]"
+
+
+def contains_restricted(text: str) -> bool:
+    """True if text contains an SSN-like value (formatted or a bare 9-digit run)."""
+    return bool(SSN_LIKE.search(text) or NINE_DIGITS.search(text))
+
+
+def mask_restricted(text: str) -> str:
+    return NINE_DIGITS.sub(REDACTED_ID, SSN_LIKE.sub("[REDACTED_SSN]", text))
+
+
 # Anything matching this must never reach durable audit storage in raw form.
 RAW_IDENTIFIER = re.compile(r"PART-\d{4}|(?<![A-Za-z0-9])E-\d{5}|(?<!\d)\d{3}-\d{2}-\d{4}(?!\d)")
 

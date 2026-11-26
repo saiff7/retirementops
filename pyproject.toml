@@ -8,6 +8,7 @@ license = { text = "Proprietary - portfolio demo" }
 dependencies = [
     "alembic>=1.14",
     "fastapi>=0.115",
+    "mcp>=2.3,<3",  # 2.x low-level Server API (ADR-013); 1.x is incompatible
     "psycopg[binary]>=3.2",
     "pydantic>=2.9",
     "pydantic-settings>=2.6",
@@ -88,15 +89,17 @@ forbidden_modules = [
     "retirementops.db",
     "retirementops.seed",
     "retirementops.config",
+    "retirementops.store",
+    "retirementops.mcp_servers",
 ]
 
 [[tool.importlinter.contracts]]
-name = "Layers: api -> services -> connectors/governance -> db/domain"
+name = "Layers: api/mcp_servers -> services -> connectors/governance/store -> db/domain"
 type = "layers"
 layers = [
-    "retirementops.api",
+    "retirementops.api | retirementops.mcp_servers",
     "retirementops.services",
-    "retirementops.connectors | retirementops.governance",
+    "retirementops.connectors | retirementops.governance | retirementops.store",
     "retirementops.db",
 ]
 
@@ -109,10 +112,18 @@ forbidden_modules = ["retirementops.connectors", "retirementops.db"]
 allow_indirect_imports = true
 
 [[tool.importlinter.contracts]]
+name = "MCP servers never touch connectors, the store or the database directly"
+type = "forbidden"
+source_modules = ["retirementops.mcp_servers"]
+forbidden_modules = ["retirementops.connectors", "retirementops.db", "retirementops.store"]
+allow_indirect_imports = true
+
+[[tool.importlinter.contracts]]
 name = "Connector adapters are independent of each other (one schema each)"
 type = "independence"
 modules = [
     "retirementops.connectors.zendesk_mock",
     "retirementops.connectors.planadmin_mock",
     "retirementops.connectors.payroll_mock",
+    "retirementops.connectors.servicekb_mock",
 ]

@@ -227,13 +227,14 @@
     "planadmin_mock.plan_rules": 12,
     "planadmin_mock.plans": 5,
     "planadmin_mock.tenants": 3,
+    "servicekb_mock.policy_snippets": 16,
     "zendesk_mock.organizations": 3,
     "zendesk_mock.ticket_comments": 121,
     "zendesk_mock.ticket_events": 121,
     "zendesk_mock.tickets": 121
   },
-  "dataset_hash": "242b13e28af7903a9bb570f46457b006281995888f610b2388b577fc889ce97a",
-  "generator_version": "seed-gen/1",
+  "dataset_hash": "f4164ef4e377761eb93ede614d72cca0ff60149e1ec0cf2f41e95368ce901a96",
+  "generator_version": "seed-gen/2",
   "seed": 42,
   "ticket_labels_hash": "86f16162b25cae8c772a233e723f21c0679a404cc059e18bd28e379197d16e40",
   "warning": "SYNTHETIC DATA ONLY. Fictional organisations, plans, rules and people."

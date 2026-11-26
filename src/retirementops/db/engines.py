@@ -13,6 +13,9 @@ def make_engine(settings: Settings, role: DbRole, db_name: str | None = None) ->
         pool_size=2,
         max_overflow=2,
         pool_pre_ping=True,
+        # Bound parameter values (ticket text, draft bodies, refs) never appear in exception
+        # messages, so they cannot reach logs through tracebacks (final review Low-1).
+        hide_parameters=True,
         connect_args={
             "application_name": f"retirementops:{role.value}",
             # UTC everywhere; bounded statements so a bad query cannot hang a request.

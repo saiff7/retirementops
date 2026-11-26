@@ -17,3 +17,4 @@ Format: Context, Decision, Consequences, Alternatives considered. Status is one 
 | [010](010-evaluation-and-ci-gates.md) | Safety gates in CI use a scripted provider; model-quality evals are run and recorded locally | Accepted |
 | [011](011-async-deferred-to-cloudflare.md) | Synchronous local runs; Queues and Workflows come in M6+ | Accepted |
 | [012](012-rate-limiting-and-bounded-audit.md) | Rate limiting, bounded anonymous audit, pseudonymised audit records | Accepted |
+| [013](013-mcp-server-implementation.md) | Service Ops MCP server on SDK 2.x low-level server; fail-closed drafts; evidence integrity | Accepted for M2 (revised after independent review), pending your review |

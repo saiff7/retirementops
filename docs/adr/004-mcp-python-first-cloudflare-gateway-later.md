@@ -22,6 +22,8 @@ do not get mixed into domain logic.
 4. The exact SDK APIs are checked against current documentation when each milestone starts. Nothing is
    copied from older examples.
 
+**M2 note:** implemented on MCP Python SDK 2.3 (low-level `Server`); details in ADR-013. Only the `service_ops` server exists so far; the `compliance` server comes with M7.
+
 ## Consequences
 - Milestones 2 to 5 run fully offline.
 - The tool list is declared in two languages, and the contract test guards it.
