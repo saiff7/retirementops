@@ -68,7 +68,7 @@ and [docs/adr/](docs/adr/README.md).
 | Identity | PyJWT 2.15, RS256 mock tokens (dev keypair in git-ignored `keys/`) |
 | Logging | structlog 26.1 with a redaction processor, also applied to standard-library loggers |
 | Quality | pytest 9.2, hypothesis, ruff 0.17, mypy 2.4 (strict on `domain/`), import-linter 2.17 |
-| CI | GitHub Actions (`.github/workflows/ci.yml`; has not run on GitHub yet) |
+| CI | GitHub Actions (`.github/workflows/ci.yml`). CI has no verified run on GitHub. No push has been verified, and no CI result has been observed. |
 | Planned | Ollama / optional Anthropic provider (M3), Streamlit (M5), Cloudflare Workers + OAuth (M6) |
 
 ## Security principles and constraints

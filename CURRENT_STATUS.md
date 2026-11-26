@@ -1,6 +1,6 @@
 # Current status
 
-_Last updated: 2026-11-26 (after the M2 commit)._
+_Last updated: 2026-11-26 (after the M2 commit and its documentation commit `f4d3349`)._
 
 ## Milestones
 
@@ -9,25 +9,23 @@ _Last updated: 2026-11-26 (after the M2 commit)._
 | M0 Discovery and design | Done, approved | `ac9e36b` |
 | M1 Synthetic business backend | Done, approved | `ac9e36b` |
 | M2 Service Operations MCP server | Done: completed, reviewed three times, approved and committed | `91f959b` |
-| M3 First skill and worker | **Not started** (waiting for the owner to start it) | — |
+| M3 First skill and worker | **NOT STARTED** (starts only with the owner's approval) | — |
 | M4–M8 | Not started | — |
 
 ## Repository state
 
-- Branch `main`. HEAD `91f959b2110b8210a10efc3ad7e072c8e9cfae8b`, "M2: add hardened service operations
-  MCP server" (69 files). Parent `ac9e36b`.
-- **Not pushed to GitHub.** Neither commit has been pushed.
-- The working tree was clean immediately after the M2 commit. The only uncommitted change since is
-  this post-commit documentation update, pending owner review. It touches eight files and no source
-  code or tests:
-  - `CURRENT_STATUS.md`
-  - `DECISIONS.md`
-  - `HANDOFF.md`
-  - `KNOWN_ISSUES.md`
-  - `docs/adr/013-mcp-server-implementation.md`
-  - `docs/adr/README.md`
-  - `docs/implementation-plan.md`
-  - `migrations/versions/0005_pin_tenant_scope_search_path.py` (docstring date only; SQL unchanged)
+_As recorded on 2026-11-26. Run `git log` and `git status` for the current state._
+
+- Branch `main`, with three local commits:
+  - `ac9e36b47feab8b9a58f1c3c82add8cdc6bbf853`, "M0 + M1: design docs and synthetic business backend".
+  - `91f959b2110b8210a10efc3ad7e072c8e9cfae8b`, "M2: add hardened service operations MCP server"
+    (69 files).
+  - `f4d3349de364160a19af6551d53fb9d8ca564648`, "Docs: finalize M2 project handoff". It records the
+    M2 commit in eight documentation files, including the migration 0005 docstring date; no source
+    code, tests or SQL changed.
+- **GitHub push status is unverified.** `origin` is configured, but no push has been verified and no
+  fetch has been performed, so the local repository has no remote-tracking information about
+  GitHub. Whether GitHub holds any of these commits has not been checked.
 
 ## M2 implementation status (committed)
 
@@ -60,12 +58,13 @@ _Last updated: 2026-11-26 (after the M2 commit)._
 | Secret scan | Passed (141 tracked files); no local secret values or JWTs in changed files |
 | Live adversarial re-runs | N-1 replay closed; 13 database guard bypass attempts as `app_service` all blocked; RLS unaffected by the caller's `search_path`; real database-failure logging (SDK and HTTP) leaks nothing |
 
-CI has **not** run on GitHub (nothing pushed since the M1 commit).
+CI has **no verified run** on GitHub: no push has been verified and no CI result has been observed.
 
 ## Remaining work
 
-1. Owner decision on pushing `main` to GitHub, which would give CI its first run (OPEN-1); see [HANDOFF.md](HANDOFF.md).
-2. **M3** ([plan](docs/implementation-plan.md)):
+1. Owner decision on pushing `main` to GitHub, which would let CI run there (OPEN-1); see
+   [HANDOFF.md](HANDOFF.md). Requires the owner's approval.
+2. **M3, NOT STARTED.** It starts only with the owner's approval ([plan](docs/implementation-plan.md)):
    - `service-ticket-triage` and `contribution-investigation` skills;
    - the orchestrator, `ModelProvider` (Ollama, Scripted), and run-scoped agent tokens;
    - the server-side draft validator, which re-allows `PENDING_REVIEW`;

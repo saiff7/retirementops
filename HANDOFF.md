@@ -1,24 +1,27 @@
 # Handoff
 
-_Last updated: 2026-11-26, after the M2 commit._
+_Last updated: 2026-11-26, after the M2 commit and its documentation commit `f4d3349`._
 
 ## Current state in one paragraph
 
-M0, M1 and M2 are completed, reviewed and committed on `main`. M2 (the Service Operations MCP
-server) went through three independent security reviews, with every finding fixed or explicitly
-accepted. It was approved by the owner and committed as `91f959b`. The working tree was clean
-after that commit. Nothing has been pushed to GitHub. **M3 has not started** and must not start
-until the owner says so.
+M0, M1 and M2 are completed, reviewed, approved and committed on `main`. M2 (the Service
+Operations MCP server) went through three independent security reviews, with every finding fixed
+or explicitly accepted. The owner approved it, and it was committed as `91f959b`. The
+documentation recording that was committed separately as `f4d3349`. GitHub push status is
+unverified: no push has been verified and no fetch has been performed. **M3 is NOT STARTED** and
+must not start until the owner approves it.
 
 ## Git
 
 | | |
 |---|---|
 | Branch | `main` (the only branch) |
-| HEAD | `91f959b2110b8210a10efc3ad7e072c8e9cfae8b`, "M2: add hardened service operations MCP server" (69 files, +6,487 / −128) |
-| Previous | `ac9e36b47feab8b9a58f1c3c82add8cdc6bbf853`, "M0 + M1: design docs and synthetic business backend" |
-| Remote | `origin` = `github.com/saiff7/retirementops`; **nothing has been pushed** (neither commit) |
-| Working tree | Clean immediately after the M2 commit. This post-commit documentation update is uncommitted, pending owner review. It touches eight files: `CURRENT_STATUS.md`, `DECISIONS.md`, `HANDOFF.md`, `KNOWN_ISSUES.md`, `docs/adr/013-mcp-server-implementation.md`, `docs/adr/README.md`, `docs/implementation-plan.md` and `migrations/versions/0005_pin_tenant_scope_search_path.py` (docstring date only). |
+| Local commits | Three, oldest first: `ac9e36b`, `91f959b`, `f4d3349` |
+| Documentation commit | `f4d3349de364160a19af6551d53fb9d8ca564648`, "Docs: finalize M2 project handoff" (eight documentation files, including the migration 0005 docstring date; no source code, tests or SQL) |
+| M2 commit | `91f959b2110b8210a10efc3ad7e072c8e9cfae8b`, "M2: add hardened service operations MCP server" (69 files, +6,487 / −128) |
+| M0 + M1 commit | `ac9e36b47feab8b9a58f1c3c82add8cdc6bbf853`, "M0 + M1: design docs and synthetic business backend" |
+| Remote | `origin` = `github.com/saiff7/retirementops`. **Push status unverified:** no push has been verified and no fetch has been performed, so the local repository has no remote-tracking information. Whether GitHub holds any of these commits has not been checked. |
+| Working tree | When this was written, the only uncommitted change was a six-file follow-up documentation correction (`README.md`, `docs/implementation-plan.md`, `CURRENT_STATUS.md`, `HANDOFF.md`, `KNOWN_ISSUES.md`, `PROJECT_CONTEXT.md`), pending owner review. Run `git status` for the current state. |
 
 Never commit `.env`, `keys/` or `.mcp.json` (all git-ignored). `scripts/check_no_secrets.py` must
 pass before any commit.
@@ -92,23 +95,17 @@ Details: [CURRENT_STATUS.md](CURRENT_STATUS.md).
 ## Outstanding issues
 
 None critical, high or medium in security. See [KNOWN_ISSUES.md](KNOWN_ISSUES.md). The most important
-open items are that CI has never run on GitHub (OPEN-1) and that Actions are pinned to tags, not SHAs
-(OPEN-2).
+open items are that CI has no verified run on GitHub (OPEN-1) and that Actions are pinned to tags,
+not SHAs (OPEN-2).
 
 ## Decisions awaiting approval
 
-1. Review and commit this post-commit documentation update. It touches eight files:
-   - `CURRENT_STATUS.md`
-   - `DECISIONS.md`
-   - `HANDOFF.md`
-   - `KNOWN_ISSUES.md`
-   - `docs/adr/013-mcp-server-implementation.md`
-   - `docs/adr/README.md`
-   - `docs/implementation-plan.md`
-   - `migrations/versions/0005_pin_tenant_scope_search_path.py` (docstring date only; SQL unchanged)
-2. Whether and when to push `main` to GitHub. Nothing has been pushed; pushing would also give CI its
-   first run (OPEN-1).
-3. When to start M3.
+1. Whether to commit the six-file follow-up documentation correction (`README.md`,
+   `docs/implementation-plan.md`, `CURRENT_STATUS.md`, `HANDOFF.md`, `KNOWN_ISSUES.md`,
+   `PROJECT_CONTEXT.md`), if it is still uncommitted.
+2. Whether and when to push `main` to GitHub. No push has been verified; pushing would let CI run
+   there (OPEN-1).
+3. When to start M3, which is NOT STARTED.
 
 ## Exact next steps for another session
 
@@ -127,10 +124,9 @@ uv sync --locked && uv run python scripts/dev_bootstrap.py && uv run python scri
 uv run ruff check src tests scripts migrations && uv run ruff format --check src tests scripts migrations && uv run mypy && uv run lint-imports && uv run pytest -q
 ```
 
-3. If the post-commit documentation update (the eight files under "Decisions awaiting approval")
-   is still uncommitted, commit it only after the owner approves it.
-4. Push `main` to GitHub only if the owner decides to. Do not amend `91f959b` unless the owner asks.
-5. **Only after the owner says to start M3:** follow the M3 section of
+3. Do not commit the six-file documentation correction (see "Decisions awaiting approval"), push or
+   fetch without the owner's approval. Do not amend or rewrite `ac9e36b`, `91f959b` or `f4d3349`.
+4. **M3 is NOT STARTED. Only after the owner approves starting it:** follow the M3 section of
    [docs/implementation-plan.md](docs/implementation-plan.md) and the M3 obligations in ADR-013:
    - run tokens with minimum scopes;
    - the validator before insert, re-allowing `PENDING_REVIEW` in a new migration that keeps the

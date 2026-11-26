@@ -51,7 +51,7 @@ M7's acceptance tests will include the §9 minimums: ≥30 passages, including o
 - RLS is defence in depth, not authentication. Anyone holding a service-role password could set their own tenant scope (ADR-003).
 - The secret check in CI is a small pattern scanner, not gitleaks.
 - GitHub Actions are pinned to major tags, not commit SHAs.
-- The CI workflow has not run on GitHub yet, because nothing has been pushed.
+- The CI workflow has no verified run on GitHub. No push has been verified.
 
 **Build:** `pyproject.toml`, uv lock, docker-compose (Postgres 16), Alembic migrations for the schemas in
 ADR-003, a deterministic seed generator (`scripts/seed.py --seed 42`), connector interfaces + mock
@@ -84,7 +84,7 @@ M7, where they are used.
 - `test_upload_with_ssn_column_rejected_and_not_stored`
 - `lint-imports` passes, along with ruff and mypy (strict on `domain/`)
 
-### M2: Service Operations MCP server (Python) ✅ (delivered 2026-11-26, awaiting review)
+### M2: Service Operations MCP server (Python) ✅ (completed, reviewed, approved and committed 2026-11-26 as `91f959b`)
 
 **Delivered:** the ten spec §6 tools on MCP Python SDK 2.3 (low-level `Server`, ADR-013), over stdio
 and stateless Streamable HTTP. Includes Pydantic `extra="forbid"` inputs, scope-filtered
@@ -137,7 +137,7 @@ resolution, per-tool scope map, audit and metrics for each call, stdio + Streama
 `test_cross_tenant_*` through MCP, and `test_registry_has_no_forbidden_tools`. `create_reply_draft`
 and `propose_ticket_assignment` create rows only.
 
-### M3: First skill and first worker
+### M3: First skill and first worker (NOT STARTED; starts only with the owner's approval)
 **Build:** `skills/service-ticket-triage/` (all content required by spec §7) and
 `skills/contribution-investigation/`. Also the orchestrator state machine, `ModelProvider`,
 `OllamaProvider`, `ScriptedProvider`, run tokens, budgets, evidence bundle, draft validator and routing

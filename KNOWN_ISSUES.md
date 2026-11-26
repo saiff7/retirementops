@@ -11,7 +11,7 @@ There are no known critical, high or medium open security findings.
 
 | ID | Severity | Issue | Recommended resolution |
 |---|---|---|---|
-| OPEN-1 | Medium (process) | CI has never run on GitHub; the workflow is unverified there. | Push a branch and confirm `.github/workflows/ci.yml` passes before relying on it. |
+| OPEN-1 | Medium (process) | CI has no verified run on GitHub. No push has been verified, and no CI result has been observed. | Push a branch and confirm `.github/workflows/ci.yml` passes before relying on it. |
 | OPEN-2 | Low | GitHub Actions are pinned to major tags, not commit SHAs. | Pin `actions/checkout` and `astral-sh/setup-uv` to SHAs. |
 | OPEN-3 | Low | The REST API ignores unknown query parameters (MCP tools reject extras). | Add a strict query-parameter dependency to the API routes. |
 | OPEN-4 | Low | All tests share one session database; ordering issues have occurred once. | Per-test transactions or per-module databases for mutating tests. |
