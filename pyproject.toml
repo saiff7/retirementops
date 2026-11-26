@@ -1,0 +1,118 @@
+[project]
+name = "retirementops"
+version = "0.1.0"
+description = "Synthetic-data portfolio simulation of AI-assisted retirement-savings operations. Not production software."
+readme = "README.md"
+requires-python = ">=3.12,<3.13"
+license = { text = "Proprietary - portfolio demo" }
+dependencies = [
+    "alembic>=1.14",
+    "fastapi>=0.115",
+    "psycopg[binary]>=3.2",
+    "pydantic>=2.9",
+    "pydantic-settings>=2.6",
+    "pyjwt[crypto]>=2.10",
+    "sqlalchemy>=2.0.36",
+    "structlog>=24.4",
+    "uvicorn>=0.32",
+]
+
+[dependency-groups]
+dev = [
+    "httpx>=0.28",
+    "hypothesis>=6.120",
+    "import-linter>=2.1",
+    "mypy>=1.13",
+    "pytest>=8.3",
+    "ruff>=0.8",
+]
+
+[build-system]
+requires = ["hatchling>=1.25"]
+build-backend = "hatchling.build"
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/retirementops"]
+
+# ---------------------------------------------------------------- tooling
+[tool.ruff]
+line-length = 100
+target-version = "py312"
+src = ["src", "tests", "scripts"]
+
+[tool.ruff.lint]
+select = ["E", "F", "W", "I", "B", "UP", "S", "BLE", "DTZ", "RUF", "PT", "SIM"]
+ignore = [
+    "RUF001", "RUF002", "RUF003",  # the multiplication sign (×) in formula text is intentional
+    "E501",  # `ruff format` governs code line length; long docstrings/SQL/test data are allowed
+]
+
+[tool.ruff.lint.per-file-ignores]
+"tests/**" = ["S101", "S105", "S106", "S608", "PT011", "PT012", "PT018"]
+"src/retirementops/seed/**" = ["S311"]  # synthetic data generator: non-cryptographic RNG by design
+"migrations/**" = ["S608"]
+
+[tool.mypy]
+python_version = "3.12"
+plugins = ["pydantic.mypy"]
+warn_unused_ignores = true
+warn_redundant_casts = true
+no_implicit_optional = true
+check_untyped_defs = true
+mypy_path = "src"
+packages = ["retirementops"]
+
+[[tool.mypy.overrides]]
+module = "retirementops.domain.*"
+strict = true
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+addopts = "-ra --strict-markers"
+markers = [
+    "integration: needs the Docker Postgres (docker compose up -d db)",
+]
+
+[tool.importlinter]
+root_package = "retirementops"
+
+[[tool.importlinter.contracts]]
+name = "Domain is pure: imports nothing else from retirementops"
+type = "forbidden"
+source_modules = ["retirementops.domain"]
+forbidden_modules = [
+    "retirementops.api",
+    "retirementops.services",
+    "retirementops.connectors",
+    "retirementops.governance",
+    "retirementops.db",
+    "retirementops.seed",
+    "retirementops.config",
+]
+
+[[tool.importlinter.contracts]]
+name = "Layers: api -> services -> connectors/governance -> db/domain"
+type = "layers"
+layers = [
+    "retirementops.api",
+    "retirementops.services",
+    "retirementops.connectors | retirementops.governance",
+    "retirementops.db",
+]
+
+[[tool.importlinter.contracts]]
+name = "API never touches connectors or the database directly"
+type = "forbidden"
+source_modules = ["retirementops.api"]
+forbidden_modules = ["retirementops.connectors", "retirementops.db"]
+# The composition root (services.container) wires connectors; API code itself must not.
+allow_indirect_imports = true
+
+[[tool.importlinter.contracts]]
+name = "Connector adapters are independent of each other (one schema each)"
+type = "independence"
+modules = [
+    "retirementops.connectors.zendesk_mock",
+    "retirementops.connectors.planadmin_mock",
+    "retirementops.connectors.payroll_mock",
+]

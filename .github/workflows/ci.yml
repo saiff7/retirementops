@@ -1,0 +1,45 @@
+name: ci
+
+on:
+  push:
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Secret hygiene (tracked files)
+        run: python3 scripts/check_no_secrets.py
+
+      - uses: astral-sh/setup-uv@v6
+        with:
+          python-version: "3.12"
+
+      - name: Install (locked)
+        run: uv sync --locked
+
+      - name: Generate throwaway CI secrets and dev keys
+        run: uv run python scripts/dev_bootstrap.py
+
+      - name: Start Postgres 16 (same compose file as local dev)
+        run: docker compose up -d --wait db
+
+      - name: Lint and format
+        run: |
+          uv run ruff check src tests scripts migrations
+          uv run ruff format --check src tests scripts migrations
+
+      - name: Types
+        run: uv run mypy
+
+      - name: Architecture contracts
+        run: uv run lint-imports
+
+      - name: Tests (unit, integration, security)
+        run: uv run pytest -q

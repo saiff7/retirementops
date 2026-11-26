@@ -1,0 +1,240 @@
+{
+  "cases": [
+    {
+      "case": "CLEAN_MATCH",
+      "expected_status": "MATCH",
+      "note": "correct payroll",
+      "participant_ref": "PART-0001",
+      "pay_period_id": "PP-2026-02",
+      "plan_id": "PLAN-001",
+      "tenant_id": "TEN-ALDER"
+    },
+    {
+      "case": "DUAL_PLAN_MATCH",
+      "expected_status": "MATCH",
+      "note": "participant in two plans",
+      "participant_ref": "PART-0019",
+      "pay_period_id": "PP-2026-02",
+      "plan_id": "PLAN-002",
+      "tenant_id": "TEN-ALDER"
+    },
+    {
+      "case": "RULE_BOUNDARY_MATCH",
+      "expected_status": "MATCH",
+      "note": "period ends on the day match v2 starts; v2 applies (half-open interval)",
+      "participant_ref": "PART-0009",
+      "pay_period_id": "PP-2026-04",
+      "plan_id": "PLAN-001",
+      "tenant_id": "TEN-ALDER"
+    },
+    {
+      "case": "MAX_DEFERRAL_CAP_MATCH",
+      "expected_status": "MATCH",
+      "note": "elected 70%, capped at the plan's fictional 60% maximum",
+      "participant_ref": "PART-0044",
+      "pay_period_id": "PP-2026-05",
+      "plan_id": "PLAN-005",
+      "tenant_id": "TEN-COBALT"
+    },
+    {
+      "case": "ONE_CENT_UNDER",
+      "expected_status": "DISCREPANCY",
+      "note": "employee deferral 1 cent short",
+      "participant_ref": "PART-0002",
+      "pay_period_id": "PP-2026-03",
+      "plan_id": "PLAN-001",
+      "tenant_id": "TEN-ALDER"
+    },
+    {
+      "case": "ONE_CENT_OVER",
+      "expected_status": "DISCREPANCY",
+      "note": "employer match 1 cent over",
+      "participant_ref": "PART-0023",
+      "pay_period_id": "PP-2026-02",
+      "plan_id": "PLAN-003",
+      "tenant_id": "TEN-BIRCH"
+    },
+    {
+      "case": "EMPLOYEE_SHORT",
+      "expected_status": "DISCREPANCY",
+      "note": "employee deferral $25.00 short",
+      "participant_ref": "PART-0007",
+      "pay_period_id": "PP-2026-06",
+      "plan_id": "PLAN-001",
+      "tenant_id": "TEN-ALDER"
+    },
+    {
+      "case": "STALE_MATCH_RULE",
+      "expected_status": "DISCREPANCY",
+      "note": "payroll applied match v1 after v2 took effect",
+      "participant_ref": "PART-0004",
+      "pay_period_id": "PP-2026-04",
+      "plan_id": "PLAN-001",
+      "tenant_id": "TEN-ALDER"
+    },
+    {
+      "case": "STALE_MATCH_RULE",
+      "expected_status": "DISCREPANCY",
+      "note": "payroll applied match v1 after v2 took effect",
+      "participant_ref": "PART-0008",
+      "pay_period_id": "PP-2026-04",
+      "plan_id": "PLAN-001",
+      "tenant_id": "TEN-ALDER"
+    },
+    {
+      "case": "ZERO_EMPLOYEE",
+      "expected_status": "DISCREPANCY",
+      "note": "enrolled participant reported with zero deferral",
+      "participant_ref": "PART-0026",
+      "pay_period_id": "PP-2026-05",
+      "plan_id": "PLAN-003",
+      "tenant_id": "TEN-BIRCH"
+    },
+    {
+      "case": "OLD_DEFERRAL_ELECTION",
+      "expected_status": "DISCREPANCY",
+      "note": "payroll kept the 5% election after the 8% change",
+      "participant_ref": "PART-0003",
+      "pay_period_id": "PP-2026-05",
+      "plan_id": "PLAN-001",
+      "tenant_id": "TEN-ALDER"
+    },
+    {
+      "case": "MISSING_ROW",
+      "expected_status": "MISSING_PAYROLL_ROW",
+      "note": "row absent from payroll file",
+      "participant_ref": "PART-0010",
+      "pay_period_id": "PP-2026-07",
+      "plan_id": "PLAN-001",
+      "tenant_id": "TEN-ALDER"
+    },
+    {
+      "case": "MISSING_ROW",
+      "expected_status": "MISSING_PAYROLL_ROW",
+      "note": "row absent from payroll file",
+      "participant_ref": "PART-0035",
+      "pay_period_id": "PP-2026-02",
+      "plan_id": "PLAN-004",
+      "tenant_id": "TEN-BIRCH"
+    },
+    {
+      "case": "MISSING_ROW",
+      "expected_status": "MISSING_PAYROLL_ROW",
+      "note": "row absent from payroll file",
+      "participant_ref": "PART-0045",
+      "pay_period_id": "PP-2026-08",
+      "plan_id": "PLAN-005",
+      "tenant_id": "TEN-COBALT"
+    },
+    {
+      "case": "MISSING_ROW",
+      "expected_status": "MISSING_PAYROLL_ROW",
+      "note": "row absent from payroll file",
+      "participant_ref": "PART-0021",
+      "pay_period_id": "PP-2026-01",
+      "plan_id": "PLAN-003",
+      "tenant_id": "TEN-BIRCH"
+    },
+    {
+      "case": "MISSING_ROW",
+      "expected_status": "MISSING_PAYROLL_ROW",
+      "note": "row absent from payroll file",
+      "participant_ref": "PART-0016",
+      "pay_period_id": "PP-2026-04",
+      "plan_id": "PLAN-002",
+      "tenant_id": "TEN-ALDER"
+    },
+    {
+      "case": "MISSING_ROW",
+      "expected_status": "MISSING_PAYROLL_ROW",
+      "note": "row absent from payroll file",
+      "participant_ref": "PART-0040",
+      "pay_period_id": "PP-2026-03",
+      "plan_id": "PLAN-005",
+      "tenant_id": "TEN-COBALT"
+    },
+    {
+      "case": "DUPLICATE_ROW",
+      "expected_status": "MULTIPLE_PAYROLL_ROWS",
+      "note": "row sent twice",
+      "participant_ref": "PART-0024",
+      "pay_period_id": "PP-2026-06",
+      "plan_id": "PLAN-003",
+      "tenant_id": "TEN-BIRCH"
+    },
+    {
+      "case": "DUPLICATE_ROW",
+      "expected_status": "MULTIPLE_PAYROLL_ROWS",
+      "note": "row sent twice",
+      "participant_ref": "PART-0046",
+      "pay_period_id": "PP-2026-04",
+      "plan_id": "PLAN-005",
+      "tenant_id": "TEN-COBALT"
+    },
+    {
+      "case": "NOT_ENROLLED_WITH_ROW",
+      "expected_status": "NOT_ENROLLED",
+      "note": "contributions reported for a non-enrolled participant",
+      "participant_ref": "PART-0011",
+      "pay_period_id": "PP-2026-03",
+      "plan_id": "PLAN-001",
+      "tenant_id": "TEN-ALDER"
+    },
+    {
+      "case": "OPTED_OUT",
+      "expected_status": "NOT_ENROLLED",
+      "note": "opted out from 2026-03-01",
+      "participant_ref": "PART-0012",
+      "pay_period_id": "PP-2026-06",
+      "plan_id": "PLAN-001",
+      "tenant_id": "TEN-ALDER"
+    },
+    {
+      "case": "RULE_CONFLICT",
+      "expected_status": "RULE_CONFLICT",
+      "note": "overlapping match v1/v2",
+      "participant_ref": "PART-0031",
+      "pay_period_id": "PP-2026-05",
+      "plan_id": "PLAN-004",
+      "tenant_id": "TEN-BIRCH"
+    },
+    {
+      "case": "RULE_MISSING",
+      "expected_status": "RULE_MISSING",
+      "note": "no match rule before Feb",
+      "participant_ref": "PART-0039",
+      "pay_period_id": "PP-2026-01",
+      "plan_id": "PLAN-005",
+      "tenant_id": "TEN-COBALT"
+    },
+    {
+      "case": "ENROLLMENT_CONFLICT",
+      "expected_status": "ENROLLMENT_CONFLICT",
+      "note": "overlapping deferral elections",
+      "participant_ref": "PART-0017",
+      "pay_period_id": "PP-2026-03",
+      "plan_id": "PLAN-002",
+      "tenant_id": "TEN-ALDER"
+    }
+  ],
+  "counts": {
+    "app.users": 8,
+    "payroll_mock.pay_periods": 8,
+    "payroll_mock.payroll_files": 40,
+    "payroll_mock.payroll_rows": 371,
+    "planadmin_mock.enrollments": 57,
+    "planadmin_mock.participants": 50,
+    "planadmin_mock.plan_rules": 12,
+    "planadmin_mock.plans": 5,
+    "planadmin_mock.tenants": 3,
+    "zendesk_mock.organizations": 3,
+    "zendesk_mock.ticket_comments": 121,
+    "zendesk_mock.ticket_events": 121,
+    "zendesk_mock.tickets": 121
+  },
+  "dataset_hash": "242b13e28af7903a9bb570f46457b006281995888f610b2388b577fc889ce97a",
+  "generator_version": "seed-gen/1",
+  "seed": 42,
+  "ticket_labels_hash": "86f16162b25cae8c772a233e723f21c0679a404cc059e18bd28e379197d16e40",
+  "warning": "SYNTHETIC DATA ONLY. Fictional organisations, plans, rules and people."
+}
