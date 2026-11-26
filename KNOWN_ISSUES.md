@@ -1,6 +1,6 @@
 # Known issues
 
-_Last updated: 2026-11-27._ Three sections, kept separate on purpose:
+_Last updated: 2026-11-26._ Three sections, kept separate on purpose:
 - **Open:** unresolved; should be fixed.
 - **Deferred:** planned for a named milestone.
 - **Accepted:** a deliberate, documented trade-off for this prototype.

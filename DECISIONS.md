@@ -32,6 +32,7 @@ was decided, why, and what was rejected. Owner decisions are dated.
 | 2026-11-26 | Model quality kept separate from safety enforcement (ADR-010) |
 | 2026-11-26 | Playbook and vendor seed data move to M7 |
 | 2026-11-26 | M0 and M1 approved and committed (`ac9e36b`) |
+| 2026-11-26 | M2 approved and committed (`91f959b`); ADR-013 accepted and implemented |
 
 ## Implementation decisions inside M2 (documented in ADR-013)
 
@@ -51,5 +52,6 @@ was decided, why, and what was rejected. Owner decisions are dated.
 
 ## Awaiting approval
 
-- **M2 as a whole**, including ADR-013 (status "Accepted for M2, pending owner review") and
-  migrations 0002–0005. See [CURRENT_STATUS.md](CURRENT_STATUS.md).
+- Nothing for M2. M2 was approved and committed as `91f959b` (2026-11-26). ADR-013 is accepted
+  and implemented, and migrations 0002–0005 are committed. Open owner decisions (pushing to
+  GitHub, starting M3) are tracked in [HANDOFF.md](HANDOFF.md).

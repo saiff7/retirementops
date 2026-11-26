@@ -118,7 +118,7 @@ and an [Inspector transcript](mcp-inspector-transcript.md).
 - Pinned `search_path` on all guard functions (including M1's); `hide_parameters=True` on all
   engines; runbook wording corrected.
 
-**Final hardening (2026-11-27):** migration 0005 pins `sec.tenant_scope()`'s `search_path`
+**Final hardening (2026-11-26):** migration 0005 pins `sec.tenant_scope()`'s `search_path`
 (behaviour, owner and grants unchanged; exact downgrade), with shadowing and RLS regression tests.
 
 **Carried into later milestones (from ADR-013):**

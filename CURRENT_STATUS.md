@@ -1,6 +1,6 @@
 # Current status
 
-_Last updated: 2026-11-27 (end of the M2 hardening session)._
+_Last updated: 2026-11-26 (after the M2 commit)._
 
 ## Milestones
 
@@ -8,11 +8,28 @@ _Last updated: 2026-11-27 (end of the M2 hardening session)._
 |---|---|---|
 | M0 Discovery and design | Done, approved | `ac9e36b` |
 | M1 Synthetic business backend | Done, approved | `ac9e36b` |
-| **M2 Service Operations MCP server** | **Implemented and reviewed three times; awaiting owner approval; not committed** | — |
-| M3 First skill and worker | Not started (do not start before M2 approval) | — |
+| M2 Service Operations MCP server | Done: completed, reviewed three times, approved and committed | `91f959b` |
+| M3 First skill and worker | **Not started** (waiting for the owner to start it) | — |
 | M4–M8 | Not started | — |
 
-## M2 implementation status
+## Repository state
+
+- Branch `main`. HEAD `91f959b2110b8210a10efc3ad7e072c8e9cfae8b`, "M2: add hardened service operations
+  MCP server" (69 files). Parent `ac9e36b`.
+- **Not pushed to GitHub.** Neither commit has been pushed.
+- The working tree was clean immediately after the M2 commit. The only uncommitted change since is
+  this post-commit documentation update, pending owner review. It touches eight files and no source
+  code or tests:
+  - `CURRENT_STATUS.md`
+  - `DECISIONS.md`
+  - `HANDOFF.md`
+  - `KNOWN_ISSUES.md`
+  - `docs/adr/013-mcp-server-implementation.md`
+  - `docs/adr/README.md`
+  - `docs/implementation-plan.md`
+  - `migrations/versions/0005_pin_tenant_scope_search_path.py` (docstring date only; SQL unchanged)
+
+## M2 implementation status (committed)
 
 - **Delivered:**
   - the ten spec §6 tools over stdio and Streamable HTTP;
@@ -24,7 +41,7 @@ _Last updated: 2026-11-27 (end of the M2 hardening session)._
 - **Database:** migrations 0001–0005. The dev database (`retirementops`) is upgraded in place to
   **0005** with its data kept. The test database is rebuilt on every test run.
 
-## Latest verified results (2026-11-27, this working tree)
+## Latest verified results (2026-11-26, the reviewed tree committed as `91f959b`; only documentation changed after the test run)
 
 | Check | Result |
 |---|---|
@@ -47,7 +64,7 @@ CI has **not** run on GitHub (nothing pushed since the M1 commit).
 
 ## Remaining work
 
-1. Owner review and approval of M2, then commit (see [HANDOFF.md](HANDOFF.md)).
+1. Owner decision on pushing `main` to GitHub, which would give CI its first run (OPEN-1); see [HANDOFF.md](HANDOFF.md).
 2. **M3** ([plan](docs/implementation-plan.md)):
    - `service-ticket-triage` and `contribution-investigation` skills;
    - the orchestrator, `ModelProvider` (Ollama, Scripted), and run-scoped agent tokens;

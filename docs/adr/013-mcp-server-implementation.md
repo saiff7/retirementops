@@ -1,6 +1,7 @@
 # ADR-013: Service Operations MCP server on the SDK 2.x low-level server; fail-closed drafts
 
-**Status:** Accepted for M2 (2026-11-26), pending owner review. Revised the same day after the
+**Status:** Accepted, and implemented. Approved by the owner on 2026-11-26 and committed with M2 as
+`91f959b`. Revised the same day, before that commit, after the
 independent M2 review (findings H-1, M-1 to M-3, Low-1 to Low-9), and again after the final review
 (finding N-1 and related lows). See the end of this record.
 

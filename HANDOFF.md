@@ -1,48 +1,48 @@
 # Handoff
 
-_Last updated: 2026-11-27, end of the M2 hardening and documentation session._
+_Last updated: 2026-11-26, after the M2 commit._
 
 ## Current state in one paragraph
 
-M0 and M1 are approved and committed. M2 (the Service Operations MCP server) is fully implemented,
-has been through three independent security reviews with every finding fixed or explicitly
-accepted, and passes all checks. It is **not committed** and is **awaiting owner approval**.
-M3 has not started and must not start until M2 is approved.
+M0, M1 and M2 are completed, reviewed and committed on `main`. M2 (the Service Operations MCP
+server) went through three independent security reviews, with every finding fixed or explicitly
+accepted. It was approved by the owner and committed as `91f959b`. The working tree was clean
+after that commit. Nothing has been pushed to GitHub. **M3 has not started** and must not start
+until the owner says so.
 
 ## Git
 
 | | |
 |---|---|
 | Branch | `main` (the only branch) |
-| HEAD | `ac9e36b47feab8b9a58f1c3c82add8cdc6bbf853`, "M0 + M1: design docs and synthetic business backend" |
-| Remote | `origin` = `github.com/saiff7/retirementops`; **nothing has been pushed** |
-| Uncommitted | 32 modified files + 30 new paths (2 of them directories: `mcp_servers/`, `store/`); see below |
+| HEAD | `91f959b2110b8210a10efc3ad7e072c8e9cfae8b`, "M2: add hardened service operations MCP server" (69 files, +6,487 / −128) |
+| Previous | `ac9e36b47feab8b9a58f1c3c82add8cdc6bbf853`, "M0 + M1: design docs and synthetic business backend" |
+| Remote | `origin` = `github.com/saiff7/retirementops`; **nothing has been pushed** (neither commit) |
+| Working tree | Clean immediately after the M2 commit. This post-commit documentation update is uncommitted, pending owner review. It touches eight files: `CURRENT_STATUS.md`, `DECISIONS.md`, `HANDOFF.md`, `KNOWN_ISSUES.md`, `docs/adr/013-mcp-server-implementation.md`, `docs/adr/README.md`, `docs/implementation-plan.md` and `migrations/versions/0005_pin_tenant_scope_search_path.py` (docstring date only). |
 
 Never commit `.env`, `keys/` or `.mcp.json` (all git-ignored). `scripts/check_no_secrets.py` must
 pass before any commit.
 
-### Modified (tracked) files
+## What the M2 commit contains
 
-`.env.example`, `CLAUDE.md`, `README.md`, `data/synthetic/manifest.json`, `pyproject.toml`, `uv.lock`,
-`migrations/env.py`, `scripts/seed.py`,
-`docs/{architecture,data-classification,implementation-plan,source-of-truth,threat-model}.md`,
-`docs/adr/{README,003-mock-systems-as-schemas,004-mcp-python-first-cloudflare-gateway-later}.md`,
-`src/retirementops/{config.py, connectors/_scoped.py, connectors/interfaces.py, connectors/payroll_mock.py,
-connectors/planadmin_mock.py, db/engines.py, db/migrate.py, domain/records.py, governance/logging.py,
-governance/pseudonym.py, seed/generator.py, services/container.py}`,
-`tests/{conftest.py, integration/test_schema_and_seed.py, security/test_db_roles_and_rls.py,
-unit/test_rate_limit_and_pseudonym.py}`.
+- **MCP server:** `src/retirementops/mcp_servers/service_ops/` (ten tools, stdio and Streamable
+  HTTP), `services/{drafting,evidence,policy}.py`, `store/workflow.py`,
+  `connectors/servicekb_mock.py`, `db/scoped.py`, `governance/metrics.py`, `scripts/dev_token.py`,
+  `.mcp.json.example`.
+- **Migrations:** `0002_mcp_service_ops`, `0003_workflow_integrity`,
+  `0004_per_user_idempotency_and_guard_hardening`, `0005_pin_tenant_scope_search_path`, plus
+  `scripts/db_upgrade.py`.
+- **Security fixes in existing code:** redaction of standard Python logs, restricted-pattern
+  masking, `hide_parameters` on engines, connector lookups by ID, the SDK pin and import contracts.
+- **Tests:** `tests/unit/test_mcp_registry.py`,
+  `tests/integration/{test_mcp_tools,test_mcp_transports,test_migrations}.py`,
+  `tests/security/{test_m2_review_regressions,test_tenant_scope_hardening}.py`, and extensions to
+  four existing test files.
+- **Docs:** ADR-013, `docs/mcp-service-ops.md`, `docs/mcp-inspector-transcript.md`,
+  `docs/operations-migrations.md`, the five root documents, the documentation rules in
+  `CLAUDE.md`, and updates to existing docs.
 
-### New (untracked) files
-
-- **Root docs:** `PROJECT_CONTEXT.md`, `DECISIONS.md`, `CURRENT_STATUS.md`, `KNOWN_ISSUES.md`, `HANDOFF.md`, `.mcp.json.example`
-- **Docs:** `docs/adr/013-mcp-server-implementation.md`, `docs/mcp-service-ops.md`, `docs/mcp-inspector-transcript.md`, `docs/operations-migrations.md`
-- **Migrations:** `migrations/versions/0002_mcp_service_ops.py`, `0003_workflow_integrity.py`, `0004_per_user_idempotency_and_guard_hardening.py`, `0005_pin_tenant_scope_search_path.py`
-- **Scripts:** `scripts/db_upgrade.py`, `scripts/dev_token.py`
-- **Source:** `src/retirementops/mcp_servers/` (`service_ops/{__init__,__main__,http,schemas,server,tools}.py`), `src/retirementops/store/workflow.py`, `services/{drafting,evidence,policy}.py`, `connectors/servicekb_mock.py`, `db/scoped.py`, `governance/metrics.py`
-- **Tests:** `tests/unit/test_mcp_registry.py`, `tests/integration/{test_mcp_tools,test_mcp_transports,test_migrations}.py`, `tests/security/{test_m2_review_regressions,test_tenant_scope_hardening}.py`
-
-## What this session implemented
+## What M2 implemented
 
 1. **M2:** the ten MCP tools, stdio and Streamable HTTP, the policy KB mock system, drafts and
    proposals stores, evidence verification, metrics, the Inspector transcript (ADR-013).
@@ -51,13 +51,20 @@ unit/test_rate_limit_and_pseudonym.py}`.
 3. **Final review fixes:** N-1 (per-user idempotency, scope check before any replay; migration 0004),
    `hide_parameters`, `created_by_kind`, M2-only `NEEDS_MANUAL_REVIEW`, pinned guard search paths,
    `skill_version` in replay, runbook wording.
-4. **This session's last step:** migration 0005 pins `sec.tenant_scope()` (`search_path = pg_catalog`, qualified
-   references, identical behaviour and grants, exact downgrade), plus the five root documents and
-   the documentation rules in `CLAUDE.md`.
+4. **Final hardening:** migration 0005 pins `sec.tenant_scope()` (`search_path = pg_catalog`,
+   qualified references, identical behaviour and grants, exact downgrade), plus the five root
+   documents and the documentation rules in `CLAUDE.md`.
+5. **Pre-commit audit fixes (documentation only):**
+   - personal paths removed from the Inspector transcript;
+   - its timestamp and correlation ID redacted;
+   - its header quoting corrected;
+   - the migration-history statement in `DECISIONS.md` corrected;
+   - two stale numbers updated.
 
-## What was tested (actual results, 2026-11-27)
+## What was tested (actual results, 2026-11-26)
 
 - Full suite: **449 passed, 0 failed** (unit 162, integration 105, security 182), 97% coverage.
+  This ran on the reviewed tree; only documentation changed between that run and the commit.
 - Ruff, format, mypy, 5 import contracts, lockfile and secret scan all clean.
 - Migration round trips (0005↔0004, head→0003→head→0002→0001→head→base), safe in-place upgrade,
   shared-key downgrade: passed.
@@ -67,6 +74,10 @@ unit/test_rate_limit_and_pseudonym.py}`.
   - RLS is unaffected by the caller's `search_path`;
   - a shadowing attack widens the scope at 0004 and is defeated at 0005;
   - real database-failure logging through the SDK and HTTP leaks nothing.
+- **Before the commit:**
+  - the staged set matched the reviewed set exactly (69 files);
+  - `git diff --cached --check` was clean;
+  - no secrets, credentials, personal paths or identifiers were staged.
 
 Details: [CURRENT_STATUS.md](CURRENT_STATUS.md).
 
@@ -86,8 +97,18 @@ open items are that CI has never run on GitHub (OPEN-1) and that Actions are pin
 
 ## Decisions awaiting approval
 
-1. **Approve M2** and commit it (all M2 work is one logical change).
-2. ADR-013 status: currently "Accepted for M2, pending owner review"; change to "Accepted" on approval.
+1. Review and commit this post-commit documentation update. It touches eight files:
+   - `CURRENT_STATUS.md`
+   - `DECISIONS.md`
+   - `HANDOFF.md`
+   - `KNOWN_ISSUES.md`
+   - `docs/adr/013-mcp-server-implementation.md`
+   - `docs/adr/README.md`
+   - `docs/implementation-plan.md`
+   - `migrations/versions/0005_pin_tenant_scope_search_path.py` (docstring date only; SQL unchanged)
+2. Whether and when to push `main` to GitHub. Nothing has been pushed; pushing would also give CI its
+   first run (OPEN-1).
+3. When to start M3.
 
 ## Exact next steps for another session
 
@@ -106,10 +127,10 @@ uv sync --locked && uv run python scripts/dev_bootstrap.py && uv run python scri
 uv run ruff check src tests scripts migrations && uv run ruff format --check src tests scripts migrations && uv run mypy && uv run lint-imports && uv run pytest -q
 ```
 
-3. **Only after the owner approves M2:** run `git add -N . && python3 scripts/check_no_secrets.py && git reset -q`, then commit
-   everything listed above as one M2 commit, ending with the attribution trailer. Then update ADR-013's
-   status, this file and `CURRENT_STATUS.md` with the new hash.
-4. **Only after the owner says to start M3:** follow the M3 section of
+3. If the post-commit documentation update (the eight files under "Decisions awaiting approval")
+   is still uncommitted, commit it only after the owner approves it.
+4. Push `main` to GitHub only if the owner decides to. Do not amend `91f959b` unless the owner asks.
+5. **Only after the owner says to start M3:** follow the M3 section of
    [docs/implementation-plan.md](docs/implementation-plan.md) and the M3 obligations in ADR-013:
    - run tokens with minimum scopes;
    - the validator before insert, re-allowing `PENDING_REVIEW` in a new migration that keeps the
@@ -117,4 +138,4 @@ uv run ruff check src tests scripts migrations && uv run ruff format --check src
    - the routing rules engine and a server-side check of proposed queues;
    - the skills.
 
-   Do not widen `app_service` privileges.
+   Do not widen `app_service` privileges. Update this file after M3.

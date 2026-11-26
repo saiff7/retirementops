@@ -19,7 +19,7 @@ Downgrade restores the exact 0001 definition and clears the function's configura
 
 Revision ID: 0005
 Revises: 0004
-Create Date: 2026-11-27
+Create Date: 2026-11-26
 """
 
 from alembic import op
