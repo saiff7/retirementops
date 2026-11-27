@@ -120,6 +120,31 @@ def test_db(settings: Settings) -> str:
 
 
 @pytest.fixture(scope="session")
+def eval_db(settings: Settings) -> str:
+    """The dedicated M4 evaluation database, rebuilt once per session (ADR-010 Amendment 1)."""
+    from retirementops.evaluations.provision import EVAL_DB, provision
+
+    provision(settings, EVAL_DB)
+    return EVAL_DB
+
+
+@pytest.fixture(scope="session")
+def eval_owner_engine(settings: Settings, eval_db: str) -> Iterator[Engine]:
+    engine = create_engine(
+        settings.dsn(DbRole.OWNER, eval_db), connect_args={"options": "-c timezone=UTC"}
+    )
+    yield engine
+    engine.dispose()
+
+
+@pytest.fixture(scope="session")
+def eval_reader_engine(settings: Settings, eval_db: str) -> Iterator[Engine]:
+    engine = make_engine(settings, DbRole.EVAL_READER, eval_db)
+    yield engine
+    engine.dispose()
+
+
+@pytest.fixture(scope="session")
 def owner_engine(settings: Settings, test_db: str) -> Iterator[Engine]:
     engine = create_engine(
         settings.dsn(DbRole.OWNER, test_db), connect_args={"options": "-c timezone=UTC"}

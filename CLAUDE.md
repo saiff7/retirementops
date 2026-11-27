@@ -64,4 +64,9 @@ Layer rules are machine-checked by import-linter (`[tool.importlinter]` in `pypr
 - Every `downgrade()` must revoke grants it made outside the objects it drops. `test_migration_round_trip` must keep passing.
 - Grants go in migrations, per role, as narrow as possible. Never grant one runtime role access to two mock schemas.
 - Runtime code never uses `ro_owner`. Only migrations, the seed loader and tests do.
+- M4 evaluation exceptions (ADR-010 Amendment 1, point 1a), for `retirementops_eval` only:
+  (1) `svc_eval_reader`'s grants are issued by `evaluations.provision`, not a migration;
+  (2) `evaluations.provision` also uses `ro_owner` and the superuser, for eval setup only;
+  (3) `svc_eval_reader` is not a runtime role but reads all four mock schemas, SELECT only.
+  Never give the reader write rights, and never use it outside `evaluations.observe`.
 - Audit writes go through `services.audit_service.AuditService` (pseudonymises). `AuditLog` refuses raw `PART-`/`E-`/SSN-like values, so never work around that by writing to the table directly.

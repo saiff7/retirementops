@@ -24,9 +24,20 @@ class DbRole(StrEnum):
     PAYROLL_INGEST = "svc_payroll_ingest"
     SERVICEKB_READER = "svc_servicekb_reader"
     AGENT_RECORDER = "svc_agent_recorder"  # M3: writes run traces only (migration 0007)
+    # M4 (ADR-010 Amendment 1, point 1a): SELECT-only scoring reader, `retirementops_eval` only.
+    # Not a runtime role: never granted CONNECT on other databases, never in the service container.
+    EVAL_READER = "svc_eval_reader"
 
 
-RUNTIME_ROLES: tuple[DbRole, ...] = tuple(r for r in DbRole if r is not DbRole.OWNER)
+# Roles the running system uses. The owner and the evaluation reader are deliberately excluded:
+# `create_database` grants CONNECT only to these, and `make_runtime_engines` builds only these.
+NON_RUNTIME_ROLES = frozenset({DbRole.OWNER, DbRole.EVAL_READER})
+RUNTIME_ROLES: tuple[DbRole, ...] = tuple(r for r in DbRole if r not in NON_RUNTIME_ROLES)
+PRIVILEGED_SECRETS = ("postgres_superuser_password", "ro_pw_ro_owner")
+
+
+class MissingSecret(RuntimeError):
+    """A privileged secret was requested in a process that must not hold it (OPEN-11)."""
 
 
 class Settings(BaseSettings):
@@ -38,9 +49,12 @@ class Settings(BaseSettings):
     ro_db_port: int = 55432
     ro_db_name: str = "retirementops"
     postgres_superuser: str = "postgres"
-    postgres_superuser_password: SecretStr
+    # Privileged secrets (OPEN-11). Optional so that a process can be built without them
+    # (`Settings.unprivileged()`); every use goes through `role_password` / `superuser_conninfo`,
+    # which stop with MissingSecret when they are absent.
+    postgres_superuser_password: SecretStr | None = None
 
-    ro_pw_ro_owner: SecretStr
+    ro_pw_ro_owner: SecretStr | None = None
     ro_pw_app_service: SecretStr
     ro_pw_svc_zendesk_reader: SecretStr
     ro_pw_svc_zendesk_writer: SecretStr
@@ -49,6 +63,7 @@ class Settings(BaseSettings):
     ro_pw_svc_payroll_ingest: SecretStr
     ro_pw_svc_servicekb_reader: SecretStr
     ro_pw_svc_agent_recorder: SecretStr
+    ro_pw_svc_eval_reader: SecretStr
 
     ro_jwt_private_key_path: Path = Path("keys/dev_jwt_private.pem")
     ro_jwt_public_key_path: Path = Path("keys/dev_jwt_public.pem")
@@ -78,8 +93,24 @@ class Settings(BaseSettings):
     ro_audit_anon_per_client_per_window: int = 2
     ro_audit_anon_global_per_window: int = 60
 
+    @classmethod
+    def unprivileged(cls) -> Settings:
+        """Settings WITHOUT the superuser and `ro_owner` secrets, even when `.env` holds them
+        (init values take precedence over the environment and `.env`). Used by the M4
+        run-and-score process; the API, MCP server and worker are unchanged (OPEN-11)."""
+        return cls(**{name: None for name in PRIVILEGED_SECRETS})
+
+    @property
+    def is_privileged(self) -> bool:
+        return any(getattr(self, name) is not None for name in PRIVILEGED_SECRETS)
+
     def role_password(self, role: DbRole) -> SecretStr:
-        value: SecretStr = getattr(self, f"ro_pw_{role.value}")
+        value: SecretStr | None = getattr(self, f"ro_pw_{role.value}")
+        if value is None:
+            raise MissingSecret(
+                f"the {role.value} secret is not loaded in this process; run this step from a "
+                "privileged entry point (bootstrap, migrations, seed or eval provisioning)"
+            )
         return value
 
     def dsn(self, role: DbRole, db_name: str | None = None) -> str:
@@ -96,6 +127,11 @@ class Settings(BaseSettings):
         ).render_as_string(hide_password=False)
 
     def superuser_conninfo(self, db_name: str = "postgres") -> dict[str, object]:
+        if self.postgres_superuser_password is None:
+            raise MissingSecret(
+                "the Postgres superuser secret is not loaded in this process; run this step from "
+                "a privileged entry point (bootstrap or eval provisioning)"
+            )
         return {
             "host": self.ro_db_host,
             "port": self.ro_db_port,

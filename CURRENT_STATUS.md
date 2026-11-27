@@ -135,6 +135,7 @@ CI has **no verified run** on GitHub: no push has been verified and no CI result
 
 | Stage | State | Evidence (commands actually run) |
 |---|---|---|
+| 2 Eval database and reader | **Done.** `evaluations/provision.py` (name guard; superuser cluster step; `ro_owner` database step; fixed reader allowlist); `svc_eval_reader` role (not a runtime role); `Settings.unprivileged()` and `MissingSecret` for the run-and-score process; CLAUDE.md note on the three exceptions. `retirementops_eval` provisioned locally (dev database still at 0005, test database untouched by provisioning) | `tests/security/test_m4_eval_provisioning.py` 46 passed; full suite 900 passed, 1 skipped (2026-11-27). Not done: a live "sabotage" grant to prove the privilege tests fail (refused: it would give the reader write rights); the tests assert exact equality instead |
 | 1 Golden dataset | **Done.** 30 seed-based cases (20 dev, 10 held-out), all six categories in both splits; manifest with per-case hashes, seed hashes and tenant list; `scripts/build_golden.py` (independent reference calculation, `--check`); `evaluations/dataset.py`; import contract for `evaluations` | `tests/unit/test_golden_dataset.py` 14 passed; full suite 854 passed, 1 skipped (2026-11-27) |
 
 Open risks and debt: [KNOWN_ISSUES.md](KNOWN_ISSUES.md).
