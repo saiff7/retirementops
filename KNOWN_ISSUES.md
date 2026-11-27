@@ -24,7 +24,7 @@ There are no known critical, high or medium open security findings.
 
 | Milestone | Item |
 |---|---|
-| M3 | The agent principal has no tenant access until run-scoped tokens exist. Proposed queues aren't checked against the routing rules engine. The draft validator, and re-allowing `PENDING_REVIEW`, come with it. |
+| M3 | Done in the working tree (uncommitted): run-scoped tokens, the server-side queue check, the draft validator and `PENDING_REVIEW` (migration 0006). Still to come in M3: skills, providers, the orchestrator and run-trace storage. Prompt construction now masks employer employee refs (`E-…`) and SSN-like values (`agent_runtime/providers/prompts.py`); `get_ticket_details` itself still masks only SSN-like values, so other MCP clients see `E-…` refs. The spec's `skills/service-ticket-triage/eval-cases.jsonl` is left to M4 (golden cases). |
 | M5 | A separate database role for edits, status changes, approvals and execution; a status-transition trigger; four-eyes enforcement; UI upload route for payroll files. |
 | M6 | OAuth 2.1 at the Cloudflare edge; remote (non-loopback) MCP exposure; edge rate limiting. |
 | M7 | Compliance MCP server; playbook (≥30 passages) and vendor (≥20) seed data. |
@@ -44,4 +44,5 @@ There are no known critical, high or medium open security findings.
 | ACC-8 | A database outage during authentication returns 500, not 503 | Fails closed with a generic body and redacted logs. |
 | ACC-9 | Rollback of migration 0002 deletes all drafts and proposals | Documented, with a backup step ([operations-migrations.md](docs/operations-migrations.md)). |
 | ACC-10 | Audit pseudonyms are keyed: anyone with `RO_AUDIT_PEPPER` can confirm a known ref | Intended investigation path. |
+| ACC-12 | A run's trace is written once, when the run ends; a process crash mid-run loses that run's trace | Append-once keeps traces immutable without UPDATE rights. Drafts and proposals created by the run are still audited with its `run_id`. The same-transaction guard also assumes no SAVEPOINT around the run insert (none is used). |
 | ACC-11 | Passing the token with `-e` to the Inspector exposes it on the local command line | Only for 15-minute local dev tokens on synthetic data. |

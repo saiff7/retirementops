@@ -7,8 +7,9 @@ current content hash is compared with the cited one. That proves:
 - it has not changed since it was read (stale or altered evidence is refused).
 Policy snippets must also be in force today, and the caller must hold the read scope for each cited
 record type (REQUIRED_SCOPE). Failure reasons name the index and a code, never values.
-Deeper semantic checks (does the evidence concern the right participant and period) are the
-validator's job (M3).
+`verify` returns each record with the participant, plan and pay period it belongs to (read from the
+server's own copy, never from the caller), so the M3 validator can check that the evidence concerns
+one subject and covers the whole calculation.
 """
 
 from __future__ import annotations
@@ -24,9 +25,14 @@ from retirementops.connectors.interfaces import (
     PolicyKbReader,
     TicketReader,
 )
-from retirementops.domain.authz import Scope, TenantScope
+from retirementops.domain.authz import RunBinding, Scope, TenantScope
+from retirementops.domain.draft_validator import CitedRecord
 from retirementops.domain.evidence import SourceRef
 from retirementops.services.errors import InvalidRequest
+
+# (participant_ref, plan_id, pay_period_id) of a verified record.
+_Owner = tuple[str | None, str | None, str | None]
+_NO_OWNER: _Owner = (None, None, None)
 
 MAX_EVIDENCE_REFS = 50
 SUPPORTED: dict[tuple[str, str], str] = {
@@ -83,34 +89,40 @@ class EvidenceVerifier:
         self._tickets, self._planadmin = tickets, planadmin
         self._payroll, self._policies = payroll, policies
 
-    def _current(self, ref: EvidenceRef, scope: TenantScope, today: date) -> SourceRef | None:
+    def _current(
+        self, ref: EvidenceRef, scope: TenantScope, today: date
+    ) -> tuple[SourceRef, _Owner] | None:
         kind, rid = SUPPORTED[(ref.system, ref.record_type)], ref.record_id
         if kind == "ticket":
             t = self._tickets.get_ticket(scope, rid)
-            return t.source if t else None
+            return (t.source, _NO_OWNER) if t else None
         if kind == "plan":
             p = self._planadmin.get_plan(scope, rid)
-            return p.source if p else None
+            return (p.source, (None, p.plan_id, None)) if p else None
         if kind == "plan_rule":
             r = self._planadmin.get_plan_rule(scope, rid)
-            return r.source if r else None
+            return (r.source, (None, r.plan_id, None)) if r else None
         if kind == "participant":
             pt = self._planadmin.get_participant(scope, rid)
-            return pt.source if pt else None
+            return (pt.source, (pt.participant_ref, None, None)) if pt else None
         if kind == "enrollment":
             e = self._planadmin.get_enrollment(scope, rid)
-            return e.source if e else None
+            return (e.source, (e.participant_ref, e.plan_id, None)) if e else None
         if kind == "pay_period":
             pp = self._payroll.get_pay_period(rid)
-            return pp.source if pp else None
+            return (pp.source, (None, None, pp.pay_period_id)) if pp else None
         if kind == "payroll_row":
             m = _PAYROLL_ROW_ID.match(rid)
             if not m:
                 return None
             row = self._payroll.get_payroll_row(scope, m.group(1), int(m.group(2)))
-            return row.source if row else None
+            if row is None:
+                return None
+            return row.source, (row.participant_ref, row.plan_id, row.pay_period_id)
         snippet = self._policies.get_snippet(rid)  # policy_snippet
-        return snippet.source if snippet and snippet.is_effective_on(today) else None
+        if snippet and snippet.is_effective_on(today):
+            return snippet.source, _NO_OWNER
+        return None
 
     @staticmethod
     def require_readable(refs: Sequence[EvidenceRef], caller_scopes: frozenset[Scope]) -> None:
@@ -136,11 +148,13 @@ class EvidenceVerifier:
         tenant_id: str,
         today: date,
         caller_scopes: frozenset[Scope],
-    ) -> list[EvidenceRef]:
+        binding: RunBinding | None = None,
+    ) -> list[CitedRecord]:
         if len(refs) > MAX_EVIDENCE_REFS:
             raise InvalidRequest(f"at most {MAX_EVIDENCE_REFS} evidence references")
         scope = TenantScope(frozenset({tenant_id}))  # the ticket's tenant only
         problems: list[str] = []
+        cited: list[CitedRecord] = []
         seen: set[tuple[str, str, str]] = set()
         for i, ref in enumerate(refs):
             key = (ref.system, ref.record_type, ref.record_id)
@@ -159,8 +173,44 @@ class EvidenceVerifier:
             current = self._current(ref, scope, today)
             if current is None:
                 problems.append(f"evidence[{i}]: {NOT_VISIBLE}")
-            elif current.content_hash != ref.content_hash:
+                continue
+            source, (participant_ref, plan_id, pay_period_id) = current
+            if binding is not None and not _within(
+                binding, ref, participant_ref, plan_id, pay_period_id
+            ):
+                # An agent run may cite only its own ticket and host-resolved subjects (T-04).
+                problems.append(f"evidence[{i}]: {NOT_VISIBLE}")
+                continue
+            if source.content_hash != ref.content_hash:
                 problems.append(f"evidence[{i}]: content hash does not match current record")
+                continue
+            cited.append(
+                CitedRecord(
+                    ref.system,
+                    ref.record_type,
+                    ref.record_id,
+                    ref.content_hash,
+                    participant_ref,
+                    plan_id,
+                    pay_period_id,
+                )
+            )
         if problems:
             raise InvalidRequest("evidence rejected: " + "; ".join(problems))
-        return list(refs)
+        return cited
+
+
+def _within(
+    binding: RunBinding,
+    ref: EvidenceRef,
+    participant_ref: str | None,
+    plan_id: str | None,
+    pay_period_id: str | None,
+) -> bool:
+    if ref.record_type == "ticket" and ref.record_id != binding.ticket_id:
+        return False
+    return (
+        (participant_ref is None or participant_ref in binding.participant_refs)
+        and (plan_id is None or plan_id in binding.plan_ids)
+        and (pay_period_id is None or pay_period_id in binding.pay_period_ids)
+    )

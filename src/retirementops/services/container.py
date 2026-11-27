@@ -21,6 +21,7 @@ from retirementops.governance.pseudonym import Pseudonymiser
 from retirementops.governance.tokens import TokenService
 from retirementops.services.audit_service import AuditService
 from retirementops.services.business import ContributionService, PlanService, TicketService
+from retirementops.services.draft_validation import DraftValidationService
 from retirementops.services.drafting import DraftingService
 from retirementops.services.evidence import EvidenceVerifier
 from retirementops.services.identity import IdentityService
@@ -57,6 +58,7 @@ def token_service_from_settings(settings: Settings) -> TokenService:
         issuer=settings.ro_jwt_issuer,
         audience=settings.ro_jwt_audience,
         ttl_seconds=settings.ro_jwt_ttl_seconds,
+        run_ttl_seconds=settings.ro_agent_run_ttl_seconds,
     )
 
 
@@ -89,6 +91,7 @@ def build_container(
         Pseudonymiser(settings.ro_audit_pepper.get_secret_value().encode()),
     )
     plans = PlanService(planadmin)
+    contributions = ContributionService(plans, planadmin, payroll)
     tickets = ZendeskMockReader(engines[DbRole.ZENDESK_READER], clock)
     kb = PolicyKbMockReader(engines[DbRole.SERVICEKB_READER], clock)
     drafting = DraftingService(
@@ -96,6 +99,7 @@ def build_container(
         evidence=EvidenceVerifier(
             tickets=tickets, planadmin=planadmin, payroll=payroll, policies=kb
         ),
+        validator=DraftValidationService(contributions),
         store=WorkflowStore(engines[DbRole.APP_SERVICE], clock),
         audit=audit,
         clock=clock,
@@ -111,7 +115,7 @@ def build_container(
         policies=PolicyService(kb, clock),
         drafting=drafting,
         plans=plans,
-        contributions=ContributionService(plans, planadmin, payroll),
+        contributions=contributions,
         payroll_ingest=PayrollIngestService(
             plans=plans,
             planadmin=planadmin,

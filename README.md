@@ -19,7 +19,7 @@ draft versions, evaluation gates, audit and handover.
 | M0 Discovery & design | Done, approved 2026-11-26 |
 | M1 Synthetic business backend | Done, approved 2026-11-26 |
 | M2 Service Operations MCP server | Done: completed, reviewed, approved and committed 2026-11-26 (`91f959b`) |
-| M3 First skill and worker | **NOT STARTED** (starts only with the owner's approval) |
+| M3 First skill and worker | **In progress** (owner approved the start 2026-11-26) |
 | M4–M8 | Not started |
 
 Project state for humans and AI sessions:

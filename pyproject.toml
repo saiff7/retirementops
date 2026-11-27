@@ -91,12 +91,14 @@ forbidden_modules = [
     "retirementops.config",
     "retirementops.store",
     "retirementops.mcp_servers",
+    "retirementops.agent_runtime",
 ]
 
 [[tool.importlinter.contracts]]
-name = "Layers: api/mcp_servers -> services -> connectors/governance/store -> db/domain"
+name = "Layers: agent_runtime -> api/mcp_servers -> services -> connectors/governance/store -> db/domain"
 type = "layers"
 layers = [
+    "retirementops.agent_runtime",
     "retirementops.api | retirementops.mcp_servers",
     "retirementops.services",
     "retirementops.connectors | retirementops.governance | retirementops.store",
@@ -115,6 +117,13 @@ allow_indirect_imports = true
 name = "MCP servers never touch connectors, the store or the database directly"
 type = "forbidden"
 source_modules = ["retirementops.mcp_servers"]
+forbidden_modules = ["retirementops.connectors", "retirementops.db", "retirementops.store"]
+allow_indirect_imports = true
+
+[[tool.importlinter.contracts]]
+name = "Agent runtime never touches connectors, the store or the database directly"
+type = "forbidden"
+source_modules = ["retirementops.agent_runtime"]
 forbidden_modules = ["retirementops.connectors", "retirementops.db", "retirementops.store"]
 allow_indirect_imports = true
 

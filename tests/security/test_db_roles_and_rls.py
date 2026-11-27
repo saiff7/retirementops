@@ -32,6 +32,7 @@ READABLE = {
     DbRole.PAYROLL_READER: {"payroll_mock"},
     DbRole.PAYROLL_INGEST: {"payroll_mock"},
     DbRole.SERVICEKB_READER: {"servicekb_mock"},
+    DbRole.AGENT_RECORDER: {"app_trace"},  # M3 (0007): run traces only
 }
 PROBE_TABLE = {
     "app": "app.users",
@@ -40,6 +41,7 @@ PROBE_TABLE = {
     "payroll_mock": "payroll_mock.payroll_rows",
     "servicekb_mock": "servicekb_mock.policy_snippets",
     "app_drafts": "app.drafts",
+    "app_trace": "app.agent_runs",
 }
 
 

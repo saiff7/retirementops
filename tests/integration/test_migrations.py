@@ -86,7 +86,7 @@ def test_migration_round_trip(scratch_db: Engine) -> None:
     assert _index_columns(scratch_db, "drafts_idempotency") is not None
     upgrade_head(DB)
     assert _state(scratch_db) == {
-        "version": "0005",
+        "version": "0007",
         "guards": 6,
         "schemas": [
             "app",
@@ -118,7 +118,7 @@ def test_migration_round_trip(scratch_db: Engine) -> None:
             is False
         )
     upgrade_head(DB)
-    assert _state(scratch_db)["version"] == "0005"
+    assert _state(scratch_db)["version"] == "0007"
     downgrade_to("base", DB)
     assert _state(scratch_db) == {"version": None, "schemas": [], "guards": 0}
 
@@ -137,7 +137,7 @@ def test_bootstrap_and_upgrade_is_idempotent_and_keeps_data(
     bootstrap_and_upgrade(settings, DB)  # second run: no drop, no error
     with scratch_db.connect() as c:
         assert c.execute(text("SELECT count(*) FROM planadmin_mock.tenants")).scalar_one() == 1
-    assert _state(scratch_db)["version"] == "0005"
+    assert _state(scratch_db)["version"] == "0007"
 
 
 def test_downgrade_0004_keeps_drafts_when_users_shared_a_key(scratch_db: Engine) -> None:
@@ -161,3 +161,57 @@ def test_downgrade_0004_keeps_drafts_when_users_shared_a_key(scratch_db: Engine)
             text("SELECT created_by, idempotency_key FROM app.drafts ORDER BY created_at")
         ).all()
     assert [tuple(r) for r in rows] == [("op.alex", "shared-key-1"), ("rev.sam", None)]
+
+
+def _draft_guard(engine: Engine) -> tuple[str, str, bool]:
+    with engine.connect() as c:
+        src, config = c.execute(
+            text(
+                "SELECT p.prosrc, coalesce(array_to_string(p.proconfig, ','), '') FROM pg_proc p "
+                "JOIN pg_namespace n ON n.oid = p.pronamespace "
+                "WHERE n.nspname = 'app' AND p.proname = 'guard_draft_insert'"
+            )
+        ).one()
+        has_column = c.execute(
+            text(
+                "SELECT count(*) FROM information_schema.columns WHERE table_schema = 'app' "
+                "AND table_name = 'drafts' AND column_name = 'validator_version'"
+            )
+        ).scalar_one()
+    return str(src), str(config), bool(has_column)
+
+
+def test_0006_round_trip_restores_the_0004_draft_guard(scratch_db: Engine) -> None:
+    upgrade_head(DB)
+    src, config, has_column = _draft_guard(scratch_db)
+    assert has_column and "requires a passing validator" in src
+    assert config == "search_path=pg_catalog, pg_temp"
+    downgrade_to("0005", DB)
+    src, config, has_column = _draft_guard(scratch_db)
+    assert not has_column
+    assert "M2: only NEEDS_MANUAL_REVIEW" in src and "PENDING_REVIEW requires" not in src
+    assert config == "search_path=pg_catalog, pg_temp"  # 0004's pin is kept on the way down
+    upgrade_head(DB)
+    assert _draft_guard(scratch_db)[2]
+
+
+def test_0007_downgrade_drops_traces_and_revokes_every_recorder_grant(scratch_db: Engine) -> None:
+    upgrade_head(DB)
+    checks = {
+        "app_usage": "SELECT has_schema_privilege('svc_agent_recorder', 'app', 'USAGE')",
+        "sec_usage": "SELECT has_schema_privilege('svc_agent_recorder', 'sec', 'USAGE')",
+        "scope_exec": "SELECT has_function_privilege('svc_agent_recorder', 'sec.tenant_scope()', "
+        "'EXECUTE')",
+        "tables": "SELECT count(*) = 3 FROM pg_tables WHERE schemaname = 'app' AND tablename IN "
+        "('agent_runs', 'tool_calls', 'evidence_items')",
+    }
+
+    def state() -> dict[str, bool]:
+        with scratch_db.connect() as c:
+            return {k: bool(c.execute(text(q)).scalar()) for k, q in checks.items()}
+
+    assert all(state().values())
+    downgrade_to("0006", DB)
+    assert not any(state().values())
+    upgrade_head(DB)
+    assert all(state().values())

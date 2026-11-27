@@ -44,6 +44,7 @@ class TicketService:
         page_size: int,
     ) -> list[Ticket]:
         ctx.require(Scope.TICKETS_READ)
+        ctx.not_in_run("ticket search")
         if not 1 <= page_size <= MAX_PAGE_SIZE:
             raise InvalidRequest(f"page_size must be 1..{MAX_PAGE_SIZE}")
         return self._reader.search_tickets(
@@ -52,6 +53,7 @@ class TicketService:
 
     def get(self, ctx: RequestContext, ticket_id: str) -> Ticket:
         ctx.require(Scope.TICKETS_READ)
+        ctx.bound_ticket(ticket_id)
         ticket = self._reader.get_ticket(ctx.principal.tenants, ticket_id)
         if ticket is None:
             raise NotFound("ticket", ticket_id)
@@ -70,6 +72,7 @@ class PlanService:
 
     def get_plan(self, ctx: RequestContext, plan_id: str) -> Plan:
         ctx.require(Scope.PLANS_READ)
+        ctx.bound_plan(plan_id)
         return self._visible_plan(ctx.principal.tenants, plan_id)
 
     def _visible_plan(self, scope: TenantScope, plan_id: str) -> Plan:
@@ -82,6 +85,8 @@ class PlanService:
         self, ctx: RequestContext, plan_id: str, participant_ref: str
     ) -> PlanParticipant:
         """Both must be visible AND belong to the same tenant (object-level check)."""
+        ctx.bound_plan(plan_id)
+        ctx.bound_participant(participant_ref)
         scope = ctx.principal.tenants
         plan = self._visible_plan(scope, plan_id)
         participant = self._planadmin.get_participant(scope, participant_ref)
@@ -98,6 +103,7 @@ class PlanService:
         contribution_type: ContributionType,
     ) -> RuleSelection:
         ctx.require(Scope.PLANS_READ)
+        ctx.bound_plan(plan_id)
         plan = self._visible_plan(ctx.principal.tenants, plan_id)
         rules = self._planadmin.list_plan_rules(ctx.principal.tenants, plan.plan_id)
         return select_applicable_rule(
@@ -132,10 +138,17 @@ class ContributionService:
             raise NotFound("pay_period", pay_period_id)
         return period
 
+    def get_pay_period(self, ctx: RequestContext, pay_period_id: str) -> PayPeriod:
+        """Pay periods are a shared calendar (not tenant data); reading one needs payroll:read."""
+        ctx.require(Scope.PAYROLL_READ)
+        ctx.bound_pay_period(pay_period_id)
+        return self._period(pay_period_id)
+
     def list_rows(
         self, ctx: RequestContext, plan_id: str, participant_ref: str, pay_period_id: str
     ) -> ContributionRows:
         ctx.require(Scope.PAYROLL_READ)
+        ctx.bound_pay_period(pay_period_id)
         pp = self._plans.resolve_plan_participant(ctx, plan_id, participant_ref)
         period = self._period(pay_period_id)
         rows = self._payroll.list_payroll_rows(
@@ -150,6 +163,7 @@ class ContributionService:
         self, ctx: RequestContext, plan_id: str, participant_ref: str, pay_period_id: str
     ) -> ContributionFinding:
         ctx.require(Scope.PAYROLL_READ, Scope.PLANS_READ)
+        ctx.bound_pay_period(pay_period_id)
         scope = ctx.principal.tenants
         pp = self._plans.resolve_plan_participant(ctx, plan_id, participant_ref)
         period = self._period(pay_period_id)

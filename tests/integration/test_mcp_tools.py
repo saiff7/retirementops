@@ -348,7 +348,9 @@ def test_create_reply_draft_creates_rows_only(
     )
     d = r["data"]
     assert not r["is_error"] and d["sent"] is False and d["evidence_count"] == 4
-    assert d["status"] == "NEEDS_MANUAL_REVIEW"  # fail closed until the M3 validator
+    # M3 validator: a payroll row is cited, but not the enrollment and rules the calculation used.
+    assert d["status"] == "NEEDS_MANUAL_REVIEW"
+    assert d["validator"]["issues"] == ["EVIDENCE_INCOMPLETE"]
     assert d["content_hash"] == draft_content_hash(ticket_id=tid, body=body, evidence_refs=refs)
     with owner_engine.connect() as conn:
         stored = conn.execute(

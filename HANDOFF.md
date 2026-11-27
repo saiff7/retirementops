@@ -9,7 +9,7 @@ Operations MCP server) went through three independent security reviews, with eve
 or explicitly accepted. The owner approved it, and it was committed as `91f959b`. The
 documentation recording that was committed separately as `f4d3349` and corrected in `3d281b6`.
 GitHub push status is unverified: no push has been verified and no fetch has been performed.
-**M3 is NOT STARTED** and must not start until the owner approves it.
+The owner approved starting M3 on 2026-11-26; **M3 is in progress** (stages 1–5 of 7, uncommitted).
 
 ## Git
 
@@ -99,11 +99,38 @@ None critical, high or medium in security. See [KNOWN_ISSUES.md](KNOWN_ISSUES.md
 open items are that CI has no verified run on GitHub (OPEN-1) and that Actions are pinned to tags,
 not SHAs (OPEN-2).
 
+## M3 progress (2026-11-26, uncommitted)
+
+The owner approved starting M3. Stages 1–5 of 7 and the run-trace storage are implemented and
+tested in the working tree (692 passed, 1 opt-in live test skipped); nothing is committed. Details: CURRENT_STATUS.md "Remaining work" and the M3
+section of DECISIONS.md. Uncommitted files:
+
+- new: `migrations/versions/0006_validator_pending_review.py`,
+  `migrations/versions/0007_agent_run_traces.py`, `src/retirementops/store/traces.py`,
+  `src/retirementops/agent_runtime/` (`skills.py`, `providers/{contracts,prompts,scripted,scripts,ollama}.py`),
+  `skills/service-ticket-triage/{SKILL,examples}.md`,
+  `skills/contribution-investigation/{SKILL,evidence-checklist}.md`,
+  `tests/unit/{test_skill_loader,test_providers}.py`, `tests/security/test_m3_agent_recorder.py`,
+  `src/retirementops/domain/routing.py`,
+  `src/retirementops/domain/draft_validator.py`, `src/retirementops/services/draft_validation.py`,
+  `tests/unit/test_routing_engine.py`, `tests/unit/test_draft_validator.py`,
+  `tests/unit/test_run_tokens.py`, `tests/security/test_m3_draft_validation.py`,
+  `tests/security/test_m3_run_binding.py`;
+- changed: `pyproject.toml` (import contracts), `.env.example`, `config.py`, `domain/authz.py`, `governance/tokens.py`, `services/{audit_service,
+  business,container,context,drafting,evidence,identity}.py`, `store/workflow.py`,
+  `mcp_servers/service_ops/tools.py`, six existing test files (deliberate expectation updates),
+  `README.md`, `docs/implementation-plan.md` and the five root documents.
+
+The dev database is still at migration 0005 and was deliberately not upgraded. When approved,
+`scripts/db_upgrade.py` (keeps data) creates the `svc_agent_recorder` login and applies 0006–0007.
+The local `.env` gained `RO_PW_SVC_AGENT_RECORDER` via `scripts/dev_bootstrap.py`.
+
 ## Decisions awaiting approval
 
 1. Whether and when to push `main` to GitHub. No push has been verified; pushing would let CI run
    there (OPEN-1).
-2. When to start M3, which is NOT STARTED.
+2. When to commit the M3 stages, and when to upgrade the dev database (0005 → 0007).
+   (Decided 2026-11-26: run traces use the dedicated `svc_agent_recorder` role; see DECISIONS.md.)
 
 ## Exact next steps for another session
 
@@ -124,7 +151,7 @@ uv run ruff check src tests scripts migrations && uv run ruff format --check src
 
 3. Do not commit uncommitted changes, push or fetch without the owner's approval. Do not amend or
    rewrite `ac9e36b`, `91f959b`, `f4d3349` or `3d281b6`.
-4. **M3 is NOT STARTED. Only after the owner approves starting it:** follow the M3 section of
+4. **M3 is in progress (approved 2026-11-26).** Continue from stage 6, following the M3 section of
    [docs/implementation-plan.md](docs/implementation-plan.md) and the M3 obligations in ADR-013:
    - run tokens with minimum scopes;
    - the validator before insert, re-allowing `PENDING_REVIEW` in a new migration that keeps the

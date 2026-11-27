@@ -99,13 +99,19 @@ def _seed_tenants(owner: Engine) -> None:
 # ---------------------------------------------------------------- pinned, behaviour preserved
 def test_upgrade_pins_search_path_and_preserves_everything_else(scratch: Engine) -> None:
     upgrade_head(DB)
-    before_rev = _function(scratch)
+    at_head = _function(scratch)
     downgrade_to("0004", DB)
     at_0004, out_0004 = _function(scratch), _outputs(scratch)
     upgrade_head(DB)
+    downgrade_to("0005", DB)  # the exact 0005 state, before later migrations add grants
     at_0005, out_0005 = _function(scratch), _outputs(scratch)
 
-    assert before_rev == at_0005
+    # After 0005, only 0007 touches the function: EXECUTE for svc_agent_recorder (RLS on traces).
+    recorder = f"{DbRole.AGENT_RECORDER.value}=X/ro_owner"
+    assert {k: v for k, v in at_head.items() if k != "acl"} == {
+        k: v for k, v in at_0005.items() if k != "acl"
+    }
+    assert recorder in at_head["acl"] and recorder not in at_0005["acl"]
     assert at_0004["config"] is None
     assert at_0005["config"] == ["search_path=pg_catalog"]
     for attr in ("lang", "vol", "par", "secdef", "strict", "leakproof", "rettype", "owner", "acl"):
@@ -113,7 +119,8 @@ def test_upgrade_pins_search_path_and_preserves_everything_else(scratch: Engine)
     assert (at_0005["lang"], at_0005["vol"], at_0005["par"]) == ("sql", "s", "s")
     assert at_0005["secdef"] is False and at_0005["rettype"] == "text[]"
     assert at_0005["owner"] == "ro_owner"
-    for role in ("ro_owner", *(r.value for r in RUNTIME_ROLES)):  # EXECUTE grants unchanged
+    pre_m3 = [r.value for r in RUNTIME_ROLES if r is not DbRole.AGENT_RECORDER]
+    for role in ("ro_owner", *pre_m3):  # EXECUTE grants unchanged by 0005
         assert f"{role}=X/ro_owner" in at_0005["acl"]
     assert out_0005 == out_0004  # identical results for every input
     assert out_0005 == [
@@ -150,7 +157,7 @@ def test_rls_policies_still_reference_the_function_and_isolate_tenants(
                 "AND with_check LIKE '%tenant_scope()%'"
             )
         ).scalar_one()
-    assert policies == 14
+    assert policies == 17  # 14 through M2, plus the three run-trace tables (0007)
     assert _visible_tenants(settings, None) == []
     assert _visible_tenants(settings, "") == []
     assert _visible_tenants(settings, "TEN-AAA") == ["TEN-AAA"]

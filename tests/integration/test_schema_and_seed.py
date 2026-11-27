@@ -110,4 +110,11 @@ def test_app_tenant_tables_have_rls(owner_engine: Engine, dataset: Dataset) -> N
         )
     tables = {r["table_name"]: r["rls"] for r in rows}
     assert tables.pop("audit_events") is False
-    assert tables == {"drafts": True, "draft_versions": True, "action_proposals": True}
+    assert tables == {
+        "drafts": True,
+        "draft_versions": True,
+        "action_proposals": True,
+        "agent_runs": True,  # M3 run traces (0007)
+        "tool_calls": True,
+        "evidence_items": True,
+    }

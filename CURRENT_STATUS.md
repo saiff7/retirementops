@@ -9,7 +9,7 @@ _Last updated: 2026-11-26 (after the M2 commit and its documentation commits `f4
 | M0 Discovery and design | Done, approved | `ac9e36b` |
 | M1 Synthetic business backend | Done, approved | `ac9e36b` |
 | M2 Service Operations MCP server | Done: completed, reviewed three times, approved and committed | `91f959b` |
-| M3 First skill and worker | **NOT STARTED** (starts only with the owner's approval) | — |
+| M3 First skill and worker | **In progress** (owner approved the start on 2026-11-26): stages 1–5 of 7 implemented and tested, not committed | — |
 | M4–M8 | Not started | — |
 
 ## Repository state
@@ -63,15 +63,36 @@ _As recorded on 2026-11-26. Run `git log` and `git status` for the current state
 
 CI has **no verified run** on GitHub: no push has been verified and no CI result has been observed.
 
+### M3 work in progress (2026-11-26, uncommitted working tree)
+
+| Check | Result |
+|---|---|
+| Full test suite | **692 passed, 0 failed, 1 skipped** (the opt-in live Ollama test) |
+| Live Ollama check | `RO_OLLAMA_LIVE=1`: 1 passed with `qwen3:8b` (schema-valid classification, digest recorded) |
+| Ruff lint and format, mypy, import contracts | Clean; 6 contracts kept (new: agent runtime never touches connectors, store or DB) |
+| Migration round trips | Pass, including 0006 ↔ 0005 and 0007 ↔ 0006 (grants revoked on the way down) |
+| Recorder role, checked in the migrated test DB | INSERT/SELECT on the three trace tables only; no other role can touch them; `app_service` grants unchanged |
+| Dev database | Still at **0005**, not upgraded (owner instruction). `scripts/db_upgrade.py` would bootstrap the new role and apply 0006–0007 |
+| Local `.env` | `scripts/dev_bootstrap.py` appended `RO_PW_SVC_AGENT_RECORDER` (git-ignored; no other value changed) |
+
 ## Remaining work
 
 1. Owner decision on pushing `main` to GitHub, which would let CI run there (OPEN-1); see
    [HANDOFF.md](HANDOFF.md). Requires the owner's approval.
-2. **M3, NOT STARTED.** It starts only with the owner's approval ([plan](docs/implementation-plan.md)):
-   - `service-ticket-triage` and `contribution-investigation` skills;
-   - the orchestrator, `ModelProvider` (Ollama, Scripted), and run-scoped agent tokens;
-   - the server-side draft validator, which re-allows `PENDING_REVIEW`;
-   - the routing rules engine and a server-side check of proposed queues;
-   - developer skills under `.claude/skills/`.
+2. **M3, in progress** ([plan](docs/implementation-plan.md)). Done and tested (uncommitted):
+   - stage 1: routing rules engine (`domain/routing.py`) and draft validator (`domain/draft_validator.py`);
+   - stage 2: migration 0006 re-allows `PENDING_REVIEW` only for a validator-passed draft; every
+     draft is validated server-side before insert (`services/draft_validation.py`);
+   - stage 3: run-scoped agent tokens bound to one tenant, ticket, subject set and permitted queue;
+     services enforce the binding and the routing queue on proposals;
+   - run-trace storage: migration 0007 (`app.agent_runs`, `app.tool_calls`, `app.evidence_items`)
+     written only by the new `svc_agent_recorder` role (owner decision), plus `store/traces.py`;
+   - stage 4: business skills `skills/service-ticket-triage/` and `skills/contribution-investigation/`
+     and a strict, content-hashing loader (`agent_runtime/skills.py`);
+   - stage 5: the `ModelProvider` contract, prompt construction, `ScriptedProvider` with the M3
+     adversarial scripts, and a loopback-only `OllamaProvider` (one live call verified locally).
+
+   Remaining: stage 6 orchestrator (host resolution and detectors, budgets, trace writing, CLI,
+   end-to-end acceptance), stage 7 developer skills under `.claude/skills/`.
 
 Open risks and debt: [KNOWN_ISSUES.md](KNOWN_ISSUES.md).

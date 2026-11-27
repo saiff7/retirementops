@@ -1,8 +1,10 @@
 """Draft replies and assignment proposals. Records only: nothing is sent, assigned or closed here.
 
-Fail-closed status (ADR-013): the server-side draft validator, which checks claims, amounts and
-identities against ground truth, arrives in M3. Until a draft passes it, every draft is stored as
-NEEDS_MANUAL_REVIEW, whoever created it. No path in M2 produces PENDING_REVIEW.
+Draft status (ADR-013, M3): every draft, from any client, is checked by the server-side validator
+(`DraftValidationService`) before it is inserted. Only a passing draft is stored as PENDING_REVIEW;
+anything else is NEEDS_MANUAL_REVIEW with value-free reasons. The database guard (migration 0006)
+independently refuses PENDING_REVIEW without a validator version and with outstanding reasons.
+Either way a human approves before anything is sent (M5).
 """
 
 from __future__ import annotations
@@ -13,11 +15,13 @@ from dataclasses import dataclass
 from retirementops.clock import Clock, utc_now
 from retirementops.connectors.interfaces import TicketReader
 from retirementops.domain.authz import Scope
+from retirementops.domain.draft_validator import ValidationReport
 from retirementops.domain.records import Ticket
 from retirementops.domain.taxonomy import TERMINAL_TICKET_STATUSES, Queue
 from retirementops.governance.pseudonym import contains_restricted
 from retirementops.services.audit_service import AuditService
 from retirementops.services.context import RequestContext
+from retirementops.services.draft_validation import DraftValidationService
 from retirementops.services.errors import InvalidRequest, NotFound
 from retirementops.services.evidence import EvidenceRef, EvidenceVerifier
 from retirementops.store.workflow import (
@@ -28,13 +32,12 @@ from retirementops.store.workflow import (
     draft_content_hash,
 )
 
-VALIDATOR_PENDING = "SERVER_VALIDATOR_NOT_YET_AVAILABLE"
-
 
 @dataclass(frozen=True, slots=True)
 class DraftResult:
     draft: DraftRecord
     evidence_count: int
+    validation: ValidationReport | None = None  # None only for an idempotent replay
 
 
 class DraftingService:
@@ -43,14 +46,16 @@ class DraftingService:
         *,
         tickets: TicketReader,
         evidence: EvidenceVerifier,
+        validator: DraftValidationService,
         store: WorkflowStore,
         audit: AuditService,
         clock: Clock = utc_now,
     ) -> None:
         self._tickets, self._evidence, self._store = tickets, evidence, store
-        self._audit, self._clock = audit, clock
+        self._validator, self._audit, self._clock = validator, audit, clock
 
     def _open_ticket(self, ctx: RequestContext, ticket_id: str) -> Ticket:
+        ctx.bound_ticket(ticket_id)
         ticket = self._tickets.get_ticket(ctx.principal.tenants, ticket_id)
         if ticket is None:
             raise NotFound("ticket", ticket_id)
@@ -111,9 +116,13 @@ class DraftingService:
             tenant_id=ticket.tenant_id,
             today=self._clock().date(),
             caller_scopes=p.scopes,
+            binding=p.run,
         )
+        report = self._validator.validate(ctx, ticket=ticket, body=body, cited=verified)
         try:
-            draft = self._create(ctx, ticket, body, verified, skill_version, idempotency_key)
+            draft = self._create(
+                ctx, ticket, body, evidence_refs, report, skill_version, idempotency_key
+            )
         except DraftConflict as exc:
             raise InvalidRequest("idempotency key already used; retry to fetch the draft") from exc
         self._audit.record(
@@ -128,16 +137,19 @@ class DraftingService:
                 "evidence_count": len(verified),
                 "skill_version": skill_version,
                 "status": draft.status,
+                "validator_version": report.validator_version,
+                "validator_issues": sorted({i.code.value for i in report.issues}),
             },
         )
-        return DraftResult(draft, len(verified))
+        return DraftResult(draft, len(verified), report)
 
     def _create(
         self,
         ctx: RequestContext,
         ticket: Ticket,
         body: str,
-        verified: Sequence[EvidenceRef],
+        refs: Sequence[EvidenceRef],
+        report: ValidationReport,
         skill_version: str,
         idempotency_key: str | None,
     ) -> DraftRecord:
@@ -147,13 +159,14 @@ class DraftingService:
             ticket_id=ticket.ticket_id,
             tenant_id=ticket.tenant_id,
             body=body,
-            evidence_refs=[r.as_dict() for r in verified],
+            evidence_refs=[r.as_dict() for r in refs],
             skill_version=skill_version,
             ticket_version=ticket.version,
             author_principal=p.principal_id,
             author_kind="human" if p.is_human else "service",
-            status="NEEDS_MANUAL_REVIEW",
-            status_reasons=[VALIDATOR_PENDING],
+            status="PENDING_REVIEW" if report.passed else "NEEDS_MANUAL_REVIEW",
+            status_reasons=list(report.reasons),
+            validator_version=report.validator_version,
             idempotency_key=idempotency_key,
         )
 
@@ -162,6 +175,7 @@ class DraftingService:
     ) -> ProposalRecord:
         ctx.require(Scope.DRAFTS_WRITE, Scope.TICKETS_READ)
         ticket = self._open_ticket(ctx, ticket_id)
+        ctx.permitted_queue(target_queue)  # ADR-013 / Low-7b: the rules engine's queue only
         if contains_restricted(rationale):
             raise InvalidRequest("rationale contains a restricted identifier pattern (POL-009)")
         proposal = self._store.create_or_get_proposal(
@@ -191,6 +205,7 @@ class DraftingService:
     def get_action_status(self, ctx: RequestContext, proposal_id: str) -> ProposalRecord:
         ctx.require(Scope.TICKETS_READ)
         proposal = self._store.get_proposal(ctx.principal.tenants, proposal_id)
-        if proposal is None:
+        run = ctx.principal.run
+        if proposal is None or (run is not None and proposal.ticket_id != run.ticket_id):
             raise NotFound("proposal", proposal_id)
         return proposal

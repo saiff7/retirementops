@@ -108,7 +108,7 @@ def _create_draft(c: Container, ctx: RequestContext, a: s.CreateReplyDraftIn) ->
         skill_version=a.skill_version,
         idempotency_key=a.idempotency_key,
     )
-    d = res.draft
+    d, report = res.draft, res.validation
     return {
         "draft_id": d.draft_id,
         "ticket_id": d.ticket_id,
@@ -116,6 +116,13 @@ def _create_draft(c: Container, ctx: RequestContext, a: s.CreateReplyDraftIn) ->
         "content_hash": d.content_hash,
         "status": d.status,
         "status_reasons": list(d.status_reasons),
+        "validator": None
+        if report is None
+        else {
+            "version": report.validator_version,
+            "passed": report.passed,
+            "issues": sorted({i.code.value for i in report.issues}),
+        },
         "evidence_count": res.evidence_count,
         "replayed": d.replayed,
         "sent": False,
@@ -237,8 +244,9 @@ TOOLS: tuple[ToolSpec, ...] = (
         "create_reply_draft",
         "Create reply draft",
         "Store a reply DRAFT for human review. Never sends anything. Evidence must include the "
-        "ticket being answered; every reference is re-checked by the server. Drafts are held "
-        "for manual review. Pass idempotency_key to make retries safe.",
+        "ticket being answered; every reference is re-checked by the server, and the body is "
+        "validated against server-computed facts (PENDING_REVIEW if it passes, otherwise "
+        "NEEDS_MANUAL_REVIEW). Pass idempotency_key to make retries safe.",
         s.CreateReplyDraftIn,
         frozenset({Scope.DRAFTS_WRITE, Scope.TICKETS_READ}),
         False,

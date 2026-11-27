@@ -83,8 +83,9 @@ def _insert_version(
 # ---------------------------------------------------------------- H-1
 @pytest.mark.parametrize(
     "status",
-    # PENDING_REVIEW is refused in M2 (final review Low-2); M3 re-allows it with the validator.
-    ["PENDING_REVIEW", "APPROVED", "REJECTED", "ESCALATED", "EXECUTED", "EXECUTION_FAILED"],
+    # PENDING_REVIEW was refused in M2 (final review Low-2). M3 (0006) re-allows it only with a
+    # passing validator; tests/security/test_m3_draft_validation.py covers that case.
+    ["APPROVED", "REJECTED", "ESCALATED", "EXECUTED", "EXECUTION_FAILED"],
 )
 def test_h1_app_role_cannot_create_draft_in_a_later_state(app_tx: Connection, status: str) -> None:
     with pytest.raises(sqlalchemy.exc.DBAPIError, match="can only be created as"):
@@ -522,7 +523,8 @@ def test_n1_header_records_author_kind(mcp_call: McpCall, owner_engine: Engine) 
             ),
             {"d": d["draft_id"]},
         ).one()
-    assert tuple(row) == ("human", "human", "NEEDS_MANUAL_REVIEW")
+    # M3: "Reviewing now." with the ticket as evidence asserts nothing unsupported, so it passes.
+    assert tuple(row) == ("human", "human", "PENDING_REVIEW")
 
 
 # ---------------------------------------------------------------- final review Low-1

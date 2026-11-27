@@ -18,8 +18,10 @@ from retirementops.clock import Clock, utc_now
 
 ALGORITHM = "RS256"
 MAX_TOKEN_BYTES = 4096
+DEFAULT_RUN_TTL_SECONDS = 600  # agent run tokens: 10 minutes (ADR-008)
 _SUB = re.compile(r"^[a-z]+\.[a-z]+$")
 _SCOPE = re.compile(r"^[a-z]+:[a-z]+$")
+ACCESS, AGENT_RUN = "access", "agent_run"
 
 
 class TokenError(Exception):
@@ -32,6 +34,7 @@ class TokenClaims:
     scopes: frozenset[str]
     jti: str
     expires_at: datetime
+    run: dict[str, object] | None = None  # present only on agent run tokens (typ=agent_run)
 
 
 class TokenService:
@@ -44,30 +47,42 @@ class TokenService:
         audience: str,
         ttl_seconds: int,
         clock: Clock = utc_now,
+        run_ttl_seconds: int = DEFAULT_RUN_TTL_SECONDS,
     ) -> None:
         self._public, self._private = public_key_pem, private_key_pem
         self._issuer, self._audience = issuer, audience
         self._ttl = timedelta(seconds=ttl_seconds)
+        self._run_ttl = timedelta(seconds=run_ttl_seconds)
         self._clock = clock
 
-    def issue(self, sub: str, scopes: frozenset[str]) -> str:
+    def _encode(
+        self, sub: str, scopes: frozenset[str], typ: str, ttl: timedelta, extra: dict[str, object]
+    ) -> str:
         if self._private is None:
             raise TokenError("this process cannot issue tokens")
         if not _SUB.match(sub) or not all(_SCOPE.match(s) for s in scopes):
             raise TokenError("invalid subject or scope")
         now = self._clock()
-        claims = {
+        claims: dict[str, object] = {
             "iss": self._issuer,
             "aud": self._audience,
             "sub": sub,
             "iat": int(now.timestamp()),
             "nbf": int(now.timestamp()),
-            "exp": int((now + self._ttl).timestamp()),
+            "exp": int((now + ttl).timestamp()),
             "jti": uuid.uuid4().hex,
-            "typ": "access",
+            "typ": typ,
             "scope": " ".join(sorted(scopes)),
+            **extra,
         }
         return jwt.encode(claims, self._private, algorithm=ALGORITHM)
+
+    def issue(self, sub: str, scopes: frozenset[str]) -> str:
+        return self._encode(sub, scopes, ACCESS, self._ttl, {})
+
+    def issue_agent_run(self, sub: str, scopes: frozenset[str], run: dict[str, object]) -> str:
+        """A short-lived token bound to one run. Only IdentityService should call this."""
+        return self._encode(sub, scopes, AGENT_RUN, self._run_ttl, {"run": run})
 
     def verify(self, token: str) -> TokenClaims:
         if not token or len(token.encode()) > MAX_TOKEN_BYTES:
@@ -84,12 +99,20 @@ class TokenService:
             )
         except jwt.PyJWTError as exc:
             raise TokenError("invalid token") from exc
-        sub, scope = claims.get("sub"), claims.get("scope", "")
-        if claims.get("typ") != "access" or not isinstance(sub, str) or not _SUB.match(sub):
+        sub, scope, typ = claims.get("sub"), claims.get("scope", ""), claims.get("typ")
+        if typ not in (ACCESS, AGENT_RUN) or not isinstance(sub, str) or not _SUB.match(sub):
             raise TokenError("invalid token")
         if not isinstance(scope, str):
             raise TokenError("invalid token")
+        run = claims.get("run")
+        # An access token never carries a run; a run token always does.
+        if (typ == AGENT_RUN) != isinstance(run, dict) or (typ == ACCESS and "run" in claims):
+            raise TokenError("invalid token")
         scopes = frozenset(s for s in scope.split() if _SCOPE.match(s))
         return TokenClaims(
-            sub, scopes, str(claims["jti"]), datetime.fromtimestamp(int(claims["exp"]), UTC)
+            sub,
+            scopes,
+            str(claims["jti"]),
+            datetime.fromtimestamp(int(claims["exp"]), UTC),
+            run if isinstance(run, dict) else None,
         )

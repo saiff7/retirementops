@@ -23,6 +23,7 @@ class DbRole(StrEnum):
     PAYROLL_READER = "svc_payroll_reader"
     PAYROLL_INGEST = "svc_payroll_ingest"
     SERVICEKB_READER = "svc_servicekb_reader"
+    AGENT_RECORDER = "svc_agent_recorder"  # M3: writes run traces only (migration 0007)
 
 
 RUNTIME_ROLES: tuple[DbRole, ...] = tuple(r for r in DbRole if r is not DbRole.OWNER)
@@ -47,12 +48,19 @@ class Settings(BaseSettings):
     ro_pw_svc_payroll_reader: SecretStr
     ro_pw_svc_payroll_ingest: SecretStr
     ro_pw_svc_servicekb_reader: SecretStr
+    ro_pw_svc_agent_recorder: SecretStr
 
     ro_jwt_private_key_path: Path = Path("keys/dev_jwt_private.pem")
     ro_jwt_public_key_path: Path = Path("keys/dev_jwt_public.pem")
     ro_jwt_issuer: str = "retirementops-dev"
     ro_jwt_audience: str = "retirementops-api"
     ro_jwt_ttl_seconds: int = 900
+    ro_agent_run_ttl_seconds: int = 600
+
+    # Local model (ADR-005). Loopback only; the model is chosen by a small M3 comparison.
+    ro_ollama_url: str = "http://127.0.0.1:11434"
+    ro_ollama_model: str = "qwen3:8b"
+    ro_ollama_timeout_seconds: float = 120.0
 
     ro_log_pepper: SecretStr
     ro_audit_pepper: (

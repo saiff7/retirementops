@@ -46,6 +46,7 @@ drafts = Table(
     Column("created_at", DateTime(timezone=True), nullable=False),
     Column("idempotency_key", String),
     Column("created_by_kind", String, nullable=False),
+    Column("validator_version", String),
     implicit_returning=False,
 )
 draft_versions = Table(
@@ -211,11 +212,13 @@ class WorkflowStore:
         author_kind: str,
         status: str,
         status_reasons: Sequence[str],
+        validator_version: str | None = None,
         idempotency_key: str | None = None,
     ) -> DraftRecord:
-        """Header + version 1 in one transaction. The database (migrations 0003/0004) independently
-        refuses any status but NEEDS_MANUAL_REVIEW, versions other than 1, and a version-1 author,
-        author kind or timestamp that does not match the header."""
+        """Header + version 1 in one transaction. The database (migrations 0003, 0004, 0006)
+        independently refuses any status but NEEDS_MANUAL_REVIEW or a validator-passed
+        PENDING_REVIEW, versions other than 1, and a version-1 author, author kind or timestamp that
+        does not match the header."""
         if not scope.allows(tenant_id):
             raise PermissionError("tenant outside scope")
         now = self._clock()
@@ -234,6 +237,7 @@ class WorkflowStore:
                     created_at=now,
                     idempotency_key=idempotency_key,
                     created_by_kind=author_kind,
+                    validator_version=validator_version,
                 )
                 .on_conflict_do_nothing(
                     index_elements=["tenant_id", "created_by", "idempotency_key"],

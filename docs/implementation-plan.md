@@ -137,7 +137,7 @@ resolution, per-tool scope map, audit and metrics for each call, stdio + Streama
 `test_cross_tenant_*` through MCP, and `test_registry_has_no_forbidden_tools`. `create_reply_draft`
 and `propose_ticket_assignment` create rows only.
 
-### M3: First skill and first worker (NOT STARTED; starts only with the owner's approval)
+### M3: First skill and first worker (in progress; owner approved the start 2026-11-26)
 **Build:** `skills/service-ticket-triage/` (all content required by spec §7) and
 `skills/contribution-investigation/`. Also the orchestrator state machine, `ModelProvider`,
 `OllamaProvider`, `ScriptedProvider`, run tokens, budgets, evidence bundle, draft validator and routing

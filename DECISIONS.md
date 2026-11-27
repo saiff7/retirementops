@@ -33,6 +33,8 @@ was decided, why, and what was rejected. Owner decisions are dated.
 | 2026-11-26 | Playbook and vendor seed data move to M7 |
 | 2026-11-26 | M0 and M1 approved and committed (`ac9e36b`) |
 | 2026-11-26 | M2 approved and committed (`91f959b`); ADR-013 accepted and implemented |
+| 2026-11-26 | M3 approved to start |
+| 2026-11-26 | Run traces get a dedicated role `svc_agent_recorder` (INSERT/SELECT on `app.agent_runs`, `app.tool_calls`, `app.evidence_items` only); `app_service` is not widened. Implemented in migration 0007: RLS on all three, trace rows only in their run's own transaction, immutable for every role. Rejected: granting `app_service` (widens the drafts role) |
 
 ## Implementation decisions inside M2 (documented in ADR-013)
 
@@ -49,6 +51,47 @@ was decided, why, and what was rejected. Owner decisions are dated.
   `0002.downgrade()` gained the `REVOKE` statements for the grants its `upgrade()` makes on `sec`
   (review Low-3), and `0003` was reformatted by ruff (whitespace only). No `upgrade()` body was
   changed in substance after being applied.
+
+## Implementation decisions inside M3 (stages 1–3, 2026-11-26, uncommitted)
+
+- **Validator decides the initial status, for every client.** `DraftingService` runs the
+  validator before insert. Passing → `PENDING_REVIEW`; anything else → `NEEDS_MANUAL_REVIEW` with
+  value-free reason codes. A human still approves either way.
+- **The database checks the validator too (0006).** `app.drafts.validator_version` is new. The
+  insert guard accepts `PENDING_REVIEW` only with a validator version and an empty reasons list,
+  keeps the pinned `search_path`, and the downgrade restores 0004 exactly. No grants changed.
+- **Ground truth comes from the server, not the caller.** The evidence verifier now reports the
+  participant, plan and pay period of each cited record from its own read. Evidence must concern
+  one subject; when it identifies participant, plan and period, the finding is recomputed and
+  every record it used must be cited. Money in the body must be an exact `format_money()` value
+  from that finding; with no finding, no amount is allowed.
+- **Run tokens (ADR-008).** A new token type, `agent_run` (10 minutes), is minted only for a
+  human operator assigned to the ticket's tenant, and carries at most `tickets:read`,
+  `plans:read`, `payroll:read`, `drafts:write`. Its binding (tenant, ticket, participants, plans,
+  pay periods, permitted queue) is set by the host. On every request the starting operator is
+  re-read, so deactivating them or removing the tenant stops the run immediately.
+- **Binding enforcement.** For run principals, anything outside the binding is "not found"
+  (same as another tenant), evidence outside it is refused with the same wording, ticket search
+  is unavailable, and a proposal may name only the routing engine's queue (ADR-013 Low-7b). Humans
+  are unaffected. Audit events of a run carry its `run_id`.
+- **Routing.** Risk flags can only make the outcome more conservative. The engine reproduces
+  every seeded ground-truth label (test). Confidence threshold 0.70 (configurable).
+
+## Implementation decisions inside M3 (stages 4–5, 2026-11-26, uncommitted)
+
+- **Skills** carry a small, strictly parsed frontmatter: `model_tools` (read-only tools offered to
+  the model; never `search_tickets` or `get_ticket_details`), `host_actions` (write tools the host
+  runs itself), `run_scopes` (within the agent-run cap). The loader hashes every file in the
+  skill folder; the hash and `name@version` are recorded on each run.
+- **The model never gets write tools.** Drafts and proposals are created by the host after
+  validation; the model only proposes text.
+- **`choose_tools` returns a `ToolDecision`** (calls plus `done`), not a bare list as in the spec
+  sketch, so the evidence loop ends on an explicit signal.
+- **Providers:** `ScriptedProvider` parses raw script text exactly like model output (so malformed
+  JSON is exercised); `OllamaProvider` uses JSON-schema structured output, temperature 0, a fixed
+  seed, thinking off, a per-call timeout and a loopback-only URL (no arbitrary URL fetching). The
+  optional Anthropic adapter (ADR-005) is not built in M3. Default model `qwen3:8b`, pending the
+  small comparison ADR-005 asks for.
 
 ## Awaiting approval
 

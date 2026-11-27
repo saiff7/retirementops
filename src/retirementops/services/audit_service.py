@@ -36,6 +36,9 @@ class AuditService:
         principal = ctx.principal if ctx else None
         correlation = ctx.correlation_id if ctx else anonymous_correlation_id
         actor = principal.principal_id if principal else (actor_override or "anonymous")
+        merged = dict(details or {})
+        if principal is not None and principal.run is not None:
+            merged["run_id"] = principal.run.run_id  # every agent action is traceable to its run
         return self._log.append(
             AuditEvent(
                 actor_principal=self._p.text(actor),
@@ -44,7 +47,7 @@ class AuditService:
                 correlation_id=self._p.text(correlation) if correlation else None,
                 event_type=event_type,
                 target_ref=self._p.text(target_ref) if target_ref else None,
-                details=self._p.deep(dict(details or {})),
+                details=self._p.deep(merged),
             )
         )
 
