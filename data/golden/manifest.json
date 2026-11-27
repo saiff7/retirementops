@@ -1,0 +1,59 @@
+{
+  "aggregate_sha256": "8a6c6e8d5295d208c6c47f6c35a5458e0f8410db36a0f2f6b3f0f179da2e5f1c",
+  "cases": {
+    "G-DEV-001": "ef03b4cb1e7909f62c169db4a60554fe39d692258af59cb319a3fbb15307688b",
+    "G-DEV-002": "01d759f1b72055c8f9c3ef69d2cb950150e86e77b68755a7df0f74dad459f753",
+    "G-DEV-003": "9bc1a35d21f46c198be4c661ac7079d7f2f187b513373d94acbbbd0e2e747ad6",
+    "G-DEV-004": "aeeb396cba518377e40b678ce5067e030504d8687937a95ff91ae413fe14a95f",
+    "G-DEV-005": "4b74fe37a607467a6863e09ac3f6ba7622fad05953f7d49bd832ae34050cb640",
+    "G-DEV-006": "c5cd89bc14cddb45e63c55b39157291a5a1a55a13f9e4ebea19aa66291d378a5",
+    "G-DEV-007": "ac709c451225b11f67f17617dc08d8627fab44532c1dff9e227d8f9ca46cda5f",
+    "G-DEV-008": "2237a1ca21cb696afc932e97d49144be056fd33c796b467d4f38d49a08eb86a0",
+    "G-DEV-009": "81ae072dacb58a214701e0dbc1f2120c0c953de3e936c1b2279de6a371dca03e",
+    "G-DEV-010": "4593f1ea9cb673b223e5b3b1208ca17341bbde595eb5350994b0b5d794c5a7f4",
+    "G-DEV-011": "2af71ec6c9e49298c534585f566e4a02332b13d76bee905e12993ff17376444d",
+    "G-DEV-012": "98e72240247da6b7f619d6c74a46bf25869784857bf14c5500698fac599f0d8c",
+    "G-DEV-013": "eb10cf4b24766aed9fe7b3749eb2c8ec83f0c0a2ed1de3ec834b957cfaf0aad9",
+    "G-DEV-014": "5c38f5dc61dafcd27af4af48699a378a286109c011aaa8c69d55f2673a4ad7ab",
+    "G-DEV-015": "481bb29507df46816c369db2653648a907bd65b909adf8da3865e79679b7b3b8",
+    "G-DEV-016": "7828deccf860af45a3821b9c990be3ee0a2b620f8a379f69a42c9e714f108576",
+    "G-DEV-017": "07b0adcf592ae01ec3f1b7c0fed5d7435ecb56d7a656c7df2a57be77e629d3da",
+    "G-DEV-018": "4c17c9138baff0fa7be1e3e5ba5554db235ad8faec4a8d6ed5347b3d89457f03",
+    "G-DEV-019": "2b7e828b18a7095cda441e0654213d27e9c639a5278120f964863a05858b921b",
+    "G-DEV-020": "b1186ce51aa8399ae642528cd96d38a537feccfe32098efcb6e8b59d6bbb3e05",
+    "G-HO-001": "66b39a2f21c14b86b522cf1fc796f36b8e3b5e95ebad117d48de36152fb2a7ed",
+    "G-HO-002": "c7fde6578f7588559c425d55b2669f52e46d46f3fe05636579d1838432ab2bfb",
+    "G-HO-003": "b2c045167ffcc419ed4e14489969a085b9a4beee9e4e93d4e6f64ac809384a6f",
+    "G-HO-004": "a6ee5f63ccd8b0a92d145cff83a116f4bbf816ad9cc15e568686aff0c44107c9",
+    "G-HO-005": "27b6334eaf735dd9b3f9ca65b23e29ede747cbe02cda8e37cac2ea6e28a09133",
+    "G-HO-006": "689d249aa736dd4176e51fdcab60bb1dc32c4bf4948d6b9cfb831c6684260ecc",
+    "G-HO-007": "7a9519910059901090b366747c9fef2ea1cef3b3e1781f79c8fa0dc2deead721",
+    "G-HO-008": "e28324721a7be08a6f4723cc5d25d335de36dd153919aa6305924286145a718d",
+    "G-HO-009": "036779ccc5e49f94e19d54e261b8d95e44f45d4cd8b8a14fe1deb1343d649075",
+    "G-HO-010": "67025afcd3e0dee79c2026f46a6c2ffe18fed8c23cc351644f30c068bd7fa266"
+  },
+  "dataset": "retirementops-golden",
+  "generator_version": "seed-gen/2",
+  "seed": 42,
+  "seed_dataset_hash": "f4164ef4e377761eb93ede614d72cca0ff60149e1ec0cf2f41e95368ce901a96",
+  "splits": {
+    "dev": {
+      "cases": 20,
+      "file": "dev/cases.jsonl",
+      "sha256": "a1e3ea7deda8eabf7eb160a1ec49a514d4bd0f7102d640a5e109ddc673b5141f"
+    },
+    "heldout": {
+      "cases": 10,
+      "file": "heldout/cases.jsonl",
+      "sha256": "b22c8b5e3e07af82290ee429ea4dc9db0e33947b02af628365901ce0a82b007c"
+    }
+  },
+  "tenants": [
+    "TEN-ALDER",
+    "TEN-BIRCH",
+    "TEN-COBALT"
+  ],
+  "ticket_labels_hash": "86f16162b25cae8c772a233e723f21c0679a404cc059e18bd28e379197d16e40",
+  "version": "1.0.0",
+  "warning": "SYNTHETIC DATA ONLY. Golden expectations for the M4 evaluation suite."
+}

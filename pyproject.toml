@@ -95,9 +95,10 @@ forbidden_modules = [
 ]
 
 [[tool.importlinter.contracts]]
-name = "Layers: agent_runtime -> api/mcp_servers -> services -> connectors/governance/store -> db/domain"
+name = "Layers: evaluations -> agent_runtime -> api/mcp_servers -> services -> connectors/governance/store -> db/domain"
 type = "layers"
 layers = [
+    "retirementops.evaluations",
     "retirementops.agent_runtime",
     "retirementops.api | retirementops.mcp_servers",
     "retirementops.services",
@@ -126,6 +127,21 @@ type = "forbidden"
 source_modules = ["retirementops.agent_runtime"]
 forbidden_modules = ["retirementops.connectors", "retirementops.db", "retirementops.store"]
 allow_indirect_imports = true
+
+[[tool.importlinter.contracts]]
+name = "Evaluations never touch connectors or the store; only provision/observe use the DB, only provision the seed"
+type = "forbidden"
+source_modules = ["retirementops.evaluations"]
+forbidden_modules = ["retirementops.connectors", "retirementops.store", "retirementops.db", "retirementops.seed"]
+# The system under test is built through services.container (which wires connectors); only the
+# provisioning module (database build, seed) and the read-only observer may import db directly.
+allow_indirect_imports = true
+ignore_imports = [
+    "retirementops.evaluations.provision -> retirementops.db.**",
+    "retirementops.evaluations.provision -> retirementops.seed.**",
+    "retirementops.evaluations.observe -> retirementops.db.**",
+]
+unmatched_ignore_imports_alerting = "warn"  # provision/observe arrive in Stages 2-3
 
 [[tool.importlinter.contracts]]
 name = "Connector adapters are independent of each other (one schema each)"

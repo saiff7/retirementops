@@ -131,4 +131,10 @@ CI has **no verified run** on GitHub: no push has been verified and no CI result
    No M4 code, datasets, tests, migrations or CI changes exist yet. Stage 1 needs the owner's
    approval.
 
+## M4 progress (implementation started 2026-11-27, owner-authorised overnight run)
+
+| Stage | State | Evidence (commands actually run) |
+|---|---|---|
+| 1 Golden dataset | **Done.** 30 seed-based cases (20 dev, 10 held-out), all six categories in both splits; manifest with per-case hashes, seed hashes and tenant list; `scripts/build_golden.py` (independent reference calculation, `--check`); `evaluations/dataset.py`; import contract for `evaluations` | `tests/unit/test_golden_dataset.py` 14 passed; full suite 854 passed, 1 skipped (2026-11-27) |
+
 Open risks and debt: [KNOWN_ISSUES.md](KNOWN_ISSUES.md).
