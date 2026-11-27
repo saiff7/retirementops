@@ -1,6 +1,6 @@
 # Current status
 
-_Last updated: 2026-11-27 (M3 stage 7 implemented; awaiting owner review)._
+_Last updated: 2026-11-27 (M3 complete: all seven stages committed; latest commit `3ab1238`)._
 
 ## Milestones
 
@@ -9,7 +9,7 @@ _Last updated: 2026-11-27 (M3 stage 7 implemented; awaiting owner review)._
 | M0 Discovery and design | Done, approved | `ac9e36b` |
 | M1 Synthetic business backend | Done, approved | `ac9e36b` |
 | M2 Service Operations MCP server | Done: completed, reviewed three times, approved and committed | `91f959b` |
-| M3 First skill and worker | **All seven stages implemented; awaiting owner review and approval.** Stages 1–5 in `1515ed2`, stage 6 in `d7a9a63`; stage 7 (developer skills) implemented, not yet committed | `1515ed2`, `d7a9a63` |
+| M3 First skill and worker | **Complete: all seven stages committed.** Stages 1–5 in `1515ed2`, stage 6 in `d7a9a63`, stage 7 (developer skills) in `3ab1238` | `1515ed2`, `d7a9a63`, `3ab1238` |
 | M4–M8 | Not started | — |
 
 ## Repository state
@@ -29,8 +29,9 @@ _As recorded on 2026-11-26. Run `git log` and `git status` for the current state
   - `b37d9c5b105bec5d7e1d4fdffb4fc1ca7dd26aae`, "Docs: record documentation commit 3d281b6".
   - `1515ed28239ed0d81287acf16a2cb48cb9e47a38`, "M3 stages 1-5: validator, run tokens, trace
     storage, skills, providers" (52 files).
-  - `d7a9a6342733c9470db0d828ae05c0804ed4ce99`, "M3 stage 6: orchestrator, host resolution and review fixes" (29 files). HEAD
-    on `main` as of 2026-11-27; the stage 7 files are uncommitted.
+  - `d7a9a6342733c9470db0d828ae05c0804ed4ce99`, "M3 stage 6: orchestrator, host resolution and review fixes" (29 files).
+  - `3ab1238be20bf4123a3f4ba255b0f11037decca9`, "M3 stage 7: add Claude Code developer skills" (9 files). Latest commit on
+    `main` as of 2026-11-27; the working tree was clean after it.
 - **GitHub push status is unverified.** `origin` is configured, but no push has been verified and no
   fetch has been performed, so the local repository has no remote-tracking information about
   GitHub. Whether GitHub holds any of these commits has not been checked.
@@ -109,11 +110,11 @@ CI has **no verified run** on GitHub: no push has been verified and no CI result
      the in-process MCP client, trace writing as `svc_agent_recorder`, audit, and
      `scripts/run_worker.py`. **Both M3 acceptance criteria pass** (see the results below).
 
-   - stage 7 (implemented 2026-11-27, uncommitted): Claude Code developer skills
+   - stage 7 (committed as `3ab1238`): Claude Code developer skills
      `.claude/skills/{add-connector,add-mcp-tool,write-eval,security-review}/SKILL.md`. Checked:
      frontmatter valid, every cited file and symbol exists, every command they give runs
      (full suite 840 passed, 1 skipped; all checks clean).
 
-   Remaining for M3: owner review and approval. M4 is not started and needs approval.
+   M3 is complete. M4 is not started and needs the owner's approval.
 
 Open risks and debt: [KNOWN_ISSUES.md](KNOWN_ISSUES.md).

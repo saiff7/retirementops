@@ -1,6 +1,6 @@
 # Handoff
 
-_Last updated: 2026-11-27, after implementing M3 stage 7 (uncommitted)._
+_Last updated: 2026-11-27, after the M3 stage 7 commit `3ab1238`._
 
 ## Current state in one paragraph
 
@@ -9,21 +9,22 @@ Operations MCP server) went through three independent security reviews, with eve
 or explicitly accepted. The owner approved it, and it was committed as `91f959b`. The
 documentation recording that was committed separately as `f4d3349` and corrected in `3d281b6`.
 GitHub push status is unverified: no push has been verified and no fetch has been performed.
-The owner approved starting M3 on 2026-11-26. **All seven M3 stages are implemented**: stages 1–5 in `1515ed2`, stage 6 in `d7a9a63`, and stage 7 (developer skills) in the working tree, not yet committed. M3 awaits owner review and approval. M4 has not started.
+The owner approved starting M3 on 2026-11-26. **M3 is complete: all seven stages are committed**: stages 1–5 in `1515ed2`, stage 6 in `d7a9a63`, stage 7 (developer skills) in `3ab1238`. M4 has not started.
 
 ## Git
 
 | | |
 |---|---|
 | Branch | `main` (the only branch) |
-| Local commits | Oldest first: `ac9e36b`, `91f959b`, `f4d3349`, `3d281b6`, `b37d9c5`, `1515ed2`, `d7a9a63` (HEAD as of 2026-11-27; run `git log` for any later ones) |
+| Local commits | Oldest first: `ac9e36b`, `91f959b`, `f4d3349`, `3d281b6`, `b37d9c5`, `1515ed2`, `d7a9a63`, `3ab1238` (latest as of 2026-11-27; run `git log` for any later ones) |
+| M3 stage 7 commit | `3ab1238be20bf4123a3f4ba255b0f11037decca9`, "M3 stage 7: add Claude Code developer skills" (9 files) |
 | M3 stage 6 commit | `d7a9a6342733c9470db0d828ae05c0804ed4ce99`, "M3 stage 6: orchestrator, host resolution and review fixes" (29 files) |
 | Documentation correction commit | `3d281b64f0c35e9c1c1e733bd78cf58f02bc2a00`, "Docs: correct project status and handoff" (six documentation files; no source code, tests or SQL) |
 | Documentation commit | `f4d3349de364160a19af6551d53fb9d8ca564648`, "Docs: finalize M2 project handoff" (eight documentation files, including the migration 0005 docstring date; no source code, tests or SQL) |
 | M2 commit | `91f959b2110b8210a10efc3ad7e072c8e9cfae8b`, "M2: add hardened service operations MCP server" (69 files, +6,487 / −128) |
 | M0 + M1 commit | `ac9e36b47feab8b9a58f1c3c82add8cdc6bbf853`, "M0 + M1: design docs and synthetic business backend" |
 | Remote | `origin` = `github.com/saiff7/retirementops`. **Push status unverified:** no push has been verified and no fetch has been performed, so the local repository has no remote-tracking information. Whether GitHub holds any of these commits has not been checked. |
-| Working tree | As of 2026-11-27: stage 7 is uncommitted (four new files under `.claude/skills/` plus updates to the five root documents). Run `git status` for the current state. |
+| Working tree | Clean after the `3ab1238` commit (2026-11-27). Run `git status` for the current state. |
 
 Never commit `.env`, `keys/` or `.mcp.json` (all git-ignored). `scripts/check_no_secrets.py` must
 pass before any commit.
@@ -108,7 +109,7 @@ orchestrator, was implemented, reviewed twice, fixed and committed as "M3 stage 
 (840 passed, 1 opt-in live test skipped, at commit time). Both M3 acceptance criteria pass. Both stage 6 reviews'
 important findings and safeguards are fixed (DECISIONS.md "Stage 6 review fixes"); the remaining
 minor findings are OPEN-9 and OPEN-10. New drafts record `draft-validator/2`. Stage 7 (developer skills)
-has not started. Details: CURRENT_STATUS.md and the M3 sections of DECISIONS.md.
+is committed as `3ab1238`. Details: CURRENT_STATUS.md and the M3 sections of DECISIONS.md.
 
 Stage 6 commit contents (29 files):
 
@@ -131,7 +132,7 @@ The dev database is still at migration 0005 and was deliberately not upgraded. T
 against the migrated **test** database (`RO_DB_NAME=retirementops_test`). When approved,
 `scripts/db_upgrade.py` (keeps data) creates the `svc_agent_recorder` login and applies 0006–0007.
 
-## M3 stage 7 (2026-11-27, uncommitted)
+## M3 stage 7 (2026-11-27, committed as `3ab1238`)
 
 Four Claude Code developer skills (not runtime agent skills), each a `SKILL.md` with `name` and
 `description` frontmatter:
@@ -150,9 +151,8 @@ ruff, format, mypy, 6 import contracts, secret scan and diff check clean).
 
 1. Whether and when to push `main` to GitHub. No push has been verified; pushing would let CI run
    there (OPEN-1).
-2. Review and commit M3 stage 7, then approve M3 as a whole.
-3. When to upgrade the dev database (0005 → 0007).
-4. The small model comparison ADR-005 asks for (`qwen3:8b` stays the default until then), and
+2. When to upgrade the dev database (0005 → 0007).
+3. The small model comparison ADR-005 asks for (`qwen3:8b` stays the default until then), and
    when to start M4.
    (Decided 2026-11-26: run traces use the dedicated `svc_agent_recorder` role; see DECISIONS.md.)
 
@@ -175,6 +175,6 @@ uv run ruff check src tests scripts migrations && uv run ruff format --check src
 
 3. Do not commit uncommitted changes, push or fetch without the owner's approval. Do not amend or
    rewrite `ac9e36b`, `91f959b`, `f4d3349` or `3d281b6`.
-4. **M3 is implemented and awaits owner approval.** Do not start M4 until the owner says so; when
+4. **M3 is complete.** Do not start M4 until the owner says so; when
    approved, follow the M4 section of [docs/implementation-plan.md](docs/implementation-plan.md)
    and the `write-eval` developer skill. Do not widen `app_service` privileges.
