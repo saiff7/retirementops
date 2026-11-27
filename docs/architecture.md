@@ -215,7 +215,7 @@ retirementops/
   skills/                    # runtime business skills (worker instructions)
   .claude/skills/            # developer skills for Claude Code (not runtime)
   migrations/                # Alembic
-  data/synthetic/  data/golden/  evals/cases/  evals/reports/
-  scripts/                   # seed generator, eval runner entrypoints
+  data/synthetic/  data/golden/{dev,heldout}/  evals/reports/   # no evals/cases/ (ADR-010 Amendment 1)
+  scripts/                   # seed generator, eval runner (run_eval.py)
   tests/unit/  tests/integration/  tests/security/  tests/evals/
 ```

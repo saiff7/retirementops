@@ -1,6 +1,6 @@
 # Handoff
 
-_Last updated: 2026-11-27, after the M3 stage 7 commit `3ab1238`._
+_Last updated: 2026-11-27, M4 Stage 0 recorded (uncommitted, pending owner approval) on top of `a674e35`._
 
 ## Current state in one paragraph
 
@@ -9,14 +9,14 @@ Operations MCP server) went through three independent security reviews, with eve
 or explicitly accepted. The owner approved it, and it was committed as `91f959b`. The
 documentation recording that was committed separately as `f4d3349` and corrected in `3d281b6`.
 GitHub push status is unverified: no push has been verified and no fetch has been performed.
-The owner approved starting M3 on 2026-11-26. **M3 is complete: all seven stages are committed**: stages 1–5 in `1515ed2`, stage 6 in `d7a9a63`, stage 7 (developer skills) in `3ab1238`. M4 has not started.
+The owner approved starting M3 on 2026-11-26. **M3 is complete: all seven stages are committed**: stages 1–5 in `1515ed2`, stage 6 in `d7a9a63`, stage 7 (developer skills) in `3ab1238`. The owner approved the M4 architectural decisions on 2026-11-27. Stage 0 (recording them as ADR amendments, documentation only) is recorded but uncommitted, and the recorded text is **pending the owner's approval**; Stages 1–8 have not started.
 
 ## Git
 
 | | |
 |---|---|
 | Branch | `main` (the only branch) |
-| Local commits | Oldest first: `ac9e36b`, `91f959b`, `f4d3349`, `3d281b6`, `b37d9c5`, `1515ed2`, `d7a9a63`, `3ab1238` (latest as of 2026-11-27; run `git log` for any later ones) |
+| Local commits | Oldest first: `ac9e36b`, `91f959b`, `f4d3349`, `3d281b6`, `b37d9c5`, `1515ed2`, `d7a9a63`, `3ab1238`, `a674e35` ("docs: mark M3 fully complete"; latest as of 2026-11-27; run `git log` for any later ones) |
 | M3 stage 7 commit | `3ab1238be20bf4123a3f4ba255b0f11037decca9`, "M3 stage 7: add Claude Code developer skills" (9 files) |
 | M3 stage 6 commit | `d7a9a6342733c9470db0d828ae05c0804ed4ce99`, "M3 stage 6: orchestrator, host resolution and review fixes" (29 files) |
 | Documentation correction commit | `3d281b64f0c35e9c1c1e733bd78cf58f02bc2a00`, "Docs: correct project status and handoff" (six documentation files; no source code, tests or SQL) |
@@ -24,7 +24,7 @@ The owner approved starting M3 on 2026-11-26. **M3 is complete: all seven stages
 | M2 commit | `91f959b2110b8210a10efc3ad7e072c8e9cfae8b`, "M2: add hardened service operations MCP server" (69 files, +6,487 / −128) |
 | M0 + M1 commit | `ac9e36b47feab8b9a58f1c3c82add8cdc6bbf853`, "M0 + M1: design docs and synthetic business backend" |
 | Remote | `origin` = `github.com/saiff7/retirementops`. **Push status unverified:** no push has been verified and no fetch has been performed, so the local repository has no remote-tracking information. Whether GitHub holds any of these commits has not been checked. |
-| Working tree | Clean after the `3ab1238` commit (2026-11-27). Run `git status` for the current state. |
+| Working tree | M4 Stage 0 documentation changes, uncommitted (2026-11-27): `DECISIONS.md`, `CURRENT_STATUS.md`, `HANDOFF.md`, `KNOWN_ISSUES.md`, `docs/adr/005-explicit-orchestrator-and-providers.md`, `docs/adr/010-evaluation-and-ci-gates.md`, `docs/adr/README.md`, `docs/implementation-plan.md`, `docs/architecture.md`. Run `git status` for the current state. |
 
 Never commit `.env`, `keys/` or `.mcp.json` (all git-ignored). `scripts/check_no_secrets.py` must
 pass before any commit.
@@ -152,9 +152,29 @@ ruff, format, mypy, 6 import contracts, secret scan and diff check clean).
 1. Whether and when to push `main` to GitHub. No push has been verified; pushing would let CI run
    there (OPEN-1).
 2. When to upgrade the dev database (0005 → 0007).
-3. The small model comparison ADR-005 asks for (`qwen3:8b` stays the default until then), and
-   when to start M4.
-   (Decided 2026-11-26: run traces use the dedicated `svc_agent_recorder` role; see DECISIONS.md.)
+3. Approving and committing the M4 Stage 0 text, then starting M4 Stage 1. History of the text,
+   all on 2026-11-27:
+   - **Scoring-access decision revised** at the owner's request: `ro_owner` is for eval setup only,
+     and scoring reads use a separate SELECT-only `svc_eval_reader` (ADR-010 Amendment 1, point 1a).
+   - **First security review**, against the code and live catalog:
+     - corrected the setup identities: the superuser creates the database, and `ro_owner`
+       migrates, seeds and grants;
+     - required process separation for privileged secrets;
+     - recorded OPEN-11 and OPEN-12.
+   - **Final review:**
+     - assigned each boundary test to its stage (Stage 2 or Stage 3);
+     - set all approval wording to "pending";
+     - listed the entry points that must check the privileged secrets;
+     - named the golden manifest's tenant list as the reader's tenant scope;
+     - extended the planned CLAUDE.md note to three exceptions;
+     - recorded the accepted snapshot blind spot (ACC-15) and the cluster-wide role refresh.
+4. Any change to the default model after the M4 Stage 6 comparison (`qwen3:8b` stays the default
+   until then; ADR-005 Amendment 1).
+5. Extending the credential-separation fix (OPEN-11) beyond the evaluation process (API, MCP
+   server, worker): needs separate owner approval.
+   (Decided 2026-11-26: run traces use the dedicated `svc_agent_recorder` role. Decided
+   2026-11-27: the M4 architectural decisions; no `ro_owner` for scoring; the snapshot blind spot
+   accepted; the OPEN-11 fix limited to the evaluation process. See DECISIONS.md.)
 
 ## Exact next steps for another session
 
@@ -175,6 +195,8 @@ uv run ruff check src tests scripts migrations && uv run ruff format --check src
 
 3. Do not commit uncommitted changes, push or fetch without the owner's approval. Do not amend or
    rewrite `ac9e36b`, `91f959b`, `f4d3349` or `3d281b6`.
-4. **M3 is complete.** Do not start M4 until the owner says so; when
-   approved, follow the M4 section of [docs/implementation-plan.md](docs/implementation-plan.md)
-   and the `write-eval` developer skill. Do not widen `app_service` privileges.
+4. **M3 is complete. M4 Stage 0 is recorded and awaits the owner's approval.** Do not commit it
+   or start Stage 1 until the owner says so.
+   When approved, follow the M4 stage table in
+   [docs/implementation-plan.md](docs/implementation-plan.md), ADR-010 Amendment 1 and the
+   `write-eval` developer skill. Do not widen `app_service` privileges.

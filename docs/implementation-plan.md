@@ -10,7 +10,7 @@ changed files, known limitations, and the owner's review before the next milesto
 | Q1 | Layout | Single package `src/retirementops/` with import-linter (ADR-002) |
 | Q2 | Python version | 3.12, uv-managed |
 | Q3 | Test database | PostgreSQL 16 in Docker (host port 55432) for integration tests. Pure domain tests need no DB. |
-| Q4 | Ollama model | Decided in M3 by a small dev-set bake-off. The digest is recorded. |
+| Q4 | Ollama model | Decided in M3 by a small dev-set bake-off. The digest is recorded. *Amended 2026-11-27:* the comparison was not run in M3 and moves to M4 Stage 6 (`qwen3:8b` vs `qwen3:14b`, dev split). `qwen3:8b` stays the default until the owner decides (ADR-005 Amendment 1). |
 | Q5 | Four-eyes | **On** for financial and compliance-sensitive actions. Editor and approver are separated (ADR-007). Implemented in M5. |
 | Q6 | Variance tolerance | **None.** Any non-zero cent variance in either component is `DISCREPANCY` (ADR-006). |
 | Q7 | DB roles per connector | **Mandatory in M1**, plus row-level security (ADR-003). No compromise on tenant isolation for schedule. |
@@ -137,7 +137,7 @@ resolution, per-tool scope map, audit and metrics for each call, stdio + Streama
 `test_cross_tenant_*` through MCP, and `test_registry_has_no_forbidden_tools`. `create_reply_draft`
 and `propose_ticket_assignment` create rows only.
 
-### M3: First skill and first worker (in progress; owner approved the start 2026-11-26)
+### M3: First skill and first worker ✅ (complete 2026-11-27: `1515ed2`, `d7a9a63`, `3ab1238`)
 **Build:** `skills/service-ticket-triage/` (all content required by spec §7) and
 `skills/contribution-investigation/`. Also the orchestrator state machine, `ModelProvider`,
 `OllamaProvider`, `ScriptedProvider`, run tokens, budgets, evidence bundle, draft validator and routing
@@ -147,13 +147,41 @@ rules engine. Plus `.claude/skills/add-connector`, `add-mcp-tool`, `write-eval` 
 finding. Scripted adversarial runs (invented amount, cross-tenant call, unlisted tool, malformed JSON,
 timeout) each end in `NEEDS_MANUAL_REVIEW`. No connector write happens during any run.
 
-### M4: Evaluation suite
+### M4: Evaluation suite (architectural decisions approved 2026-11-27; Stage 0 text recorded, pending approval; Stages 1–8 not started)
 **Build:** 30 golden cases split into dev and held-out, covering normal, ambiguous, missing-data,
 conflicting, cross-tenant and injection cases. Also scorers for the spec §12 metrics, a report with full
 version metadata, and a CI workflow running the safety tier.
 
 **Acceptance:** CI fails when a safety invariant is broken. This is shown by a deliberately broken
 branch or test. A local Ollama report is committed.
+
+**Design (decisions approved 2026-11-27; recorded text pending approval):** [ADR-010 Amendment 1](adr/010-evaluation-and-ci-gates.md) and
+[ADR-005 Amendment 1](adr/005-explicit-orchestrator-and-providers.md); summarised in
+[DECISIONS.md](../DECISIONS.md) "M4 decisions".
+- Runs against `retirementops_eval`, rebuilt from seed 42 for each run.
+- Started with `scripts/run_eval.py`; code lives in `src/retirementops/evaluations/`.
+- Cases live in `data/golden/{dev,heldout}/`.
+- Drives the unchanged M3 stack.
+
+**Stages.** Each stage needs the owner's approval to start and ends with real test output.
+
+| Stage | Build | Main files | Done when |
+|---|---|---|---|
+| 0 | Record the approved decisions; amend ADR-010 and ADR-005 (documentation only) | `docs/adr/010…`, `docs/adr/005…`, `DECISIONS.md`, this plan, root documents | The owner has approved the recorded text (pending) |
+| 1 | Strict golden case model (`extra="forbid"`): case ID, split, category, seed ticket or inline ticket, frozen expectations, forbidden behaviours. 30 cases (about 20 dev, 10 held-out) across all six categories, plus a manifest with the tenant list; the `evaluations` import contract | `data/golden/{dev,heldout}/cases.jsonl`, `data/golden/manifest.json`, `evaluations/dataset.py`, `pyproject.toml` (import contract) | Tests pass: schema is strict, splits don't overlap, seed-based cases agree with `ticket_labels.jsonl`, manifest hashes verify, the manifest's tenant list matches the seed, every category is covered, a change without a version bump fails; `lint-imports` keeps the new contract |
+| 2 | Provisioning in its own process (setup only). Cluster step as the superuser: roles, fresh database, `PUBLIC` revoked, CONNECT grants, reader read-only default. Database step as `ro_owner`: migrate to head, load seed 42, inline tickets, hash check, reader grants. Also: name guard; evaluation rate-limit configuration; new scoring login `svc_eval_reader` (not a runtime role, SELECT only, `retirementops_eval` only); superuser and owner settings made optional, a run-and-score settings mode that excludes them even when `.env` holds them, and a clear failure in each entry point that needs them (ADR-010 Amendment 1, points 1 and 1a). The API, MCP server and worker are unchanged (OPEN-11) | `evaluations/provision.py`; `config.py` (reader role, `RUNTIME_ROLES` exclusion, optional privileged settings, run-and-score mode); presence checks in `db/bootstrap.py`, `db/migrate.py`, `migrations/env.py`, `scripts/seed.py`, `scripts/db_upgrade.py`, `tests/conftest.py`; `.env.example`; CLAUDE.md (note on the three exceptions) | Tests pass: other names (dev included) are refused; a rebuild is idempotent; a tampered row is caught; dev and test databases are untouched; the build takes under a minute. Reader tests pass: role attributes; connect rights from the catalog (eval yes; test no; dev no where it exists, since CI has none); eval database ACL; exact privilege set including effective function rights; writes, sequences, temporary tables and `CREATE` denied; audit and users denied; RLS holds; not in `RUNTIME_ROLES` and no runtime engine. Settings tests pass: the run-and-score mode holds no privileged secret and cannot build an owner or superuser connection; entry points fail clearly without the secrets; only `evaluations.provision` (outside existing bootstrap, migration, seed and test code) refers to the owner role or superuser |
+| 3 | Recording wrapper; runner with one `Orchestrator` per case and a real operator; trace, draft and proposal readback and mock-system snapshots as `svc_eval_reader`; strict `CaseResult`; full run metadata | `evaluations/{recording,observe,runner}.py`, `scripts/run_eval.py` | A scripted dev run is reproducible apart from timestamps and IDs; incomplete metadata aborts; a missing trace counts as a failure; retried parse failures are counted; provisioning runs in its own process that exits before the first case, and the run-and-score process uses the excluding settings mode; only `evaluations.observe` refers to the reader role |
+| 4 | Pure scorers for every spec §12 metric, against frozen expectations only; first-pass tool scoring; N/A for metrics that need M5 | `evaluations/scorers.py` | Unit tests on hand-built results, including edge cases and an F1 property test |
+| 5 | Safety tier: faithful scripts plus the adversarial and injection matrix; ADR-010 gates as defined in Amendment 1; "gate trips" sabotage tests | `evaluations/gates.py`, `tests/evals/test_safety_gates.py` | All gates pass on the real system, and each gate trips under its sabotage |
+| 6 | Quality tier: `qwen3:8b` and `qwen3:14b` on dev with 3 repeats, then held-out once per model | `scripts/run_eval.py --tier quality` | Both reports exist; written comparison for the owner; targets shown as met or "NOT MET" |
+| 7 | `results.jsonl`, `summary.json`, `report.md`; variance; baseline diff with regression flags; no ticket or participant text | `evaluations/report.py`, `evals/reports/<run-id>/` | Report schema test; fixed input renders byte-identically; regressions are flagged; a local Ollama report is committed |
+| 8 | Safety tier in the existing CI job against `retirementops_eval`; deliberate-break demonstration; documentation | `.github/workflows/ci.yml`, `docs/evaluation-plan.md`, root documents | CI is green on `main` and red on the deliberate break (needs a push, OPEN-1) |
+
+**Not in M4:**
+- metrics that need M5 (review-queue age, approval and rejection rates);
+- the full duplicate-execution gate (M5);
+- upgrading the dev database;
+- any change to the default model without the owner's decision.
 
 ### M5: Human-review UI and approved execution
 **Build:** Streamlit operator queue, evidence and trace view, draft editor, approve/reject/escalate,

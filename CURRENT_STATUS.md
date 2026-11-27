@@ -1,6 +1,6 @@
 # Current status
 
-_Last updated: 2026-11-27 (M3 complete: all seven stages committed; latest commit `3ab1238`)._
+_Last updated: 2026-11-27 (M3 complete; M4 Stage 0 recorded, uncommitted, pending owner approval; latest commit `a674e35`)._
 
 ## Milestones
 
@@ -10,7 +10,8 @@ _Last updated: 2026-11-27 (M3 complete: all seven stages committed; latest commi
 | M1 Synthetic business backend | Done, approved | `ac9e36b` |
 | M2 Service Operations MCP server | Done: completed, reviewed three times, approved and committed | `91f959b` |
 | M3 First skill and worker | **Complete: all seven stages committed.** Stages 1–5 in `1515ed2`, stage 6 in `d7a9a63`, stage 7 (developer skills) in `3ab1238` | `1515ed2`, `d7a9a63`, `3ab1238` |
-| M4–M8 | Not started | — |
+| M4 Evaluation suite | **Architectural decisions approved 2026-11-27. Stage 0 (ADR amendments, documentation only) recorded, uncommitted, pending owner approval of the text.** Stages 1–8 not started | — |
+| M5–M8 | Not started | — |
 
 ## Repository state
 
@@ -115,6 +116,17 @@ CI has **no verified run** on GitHub: no push has been verified and no CI result
      frontmatter valid, every cited file and symbol exists, every command they give runs
      (full suite 840 passed, 1 skipped; all checks clean).
 
-   M3 is complete. M4 is not started and needs the owner's approval.
+   M3 is complete.
+3. **M4, Stage 0 recorded (2026-11-27, uncommitted, pending owner approval):**
+   - the evaluation design is in ADR-010 Amendment 1 and ADR-005 Amendment 1. The owner approved
+     the architectural decisions; the recorded text, including the scoring-reader design, is
+     pending approval;
+   - two security reviews of that design, against the code and the live catalog, were documented;
+     they added OPEN-11, OPEN-12 and ACC-15 to [KNOWN_ISSUES.md](KNOWN_ISSUES.md);
+   - `DECISIONS.md` "M4 decisions" indexes them;
+   - the stage plan is in the M4 section of [docs/implementation-plan.md](docs/implementation-plan.md).
+
+   No M4 code, datasets, tests, migrations or CI changes exist yet. Stage 1 needs the owner's
+   approval.
 
 Open risks and debt: [KNOWN_ISSUES.md](KNOWN_ISSUES.md).

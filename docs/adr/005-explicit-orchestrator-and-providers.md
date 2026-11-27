@@ -1,6 +1,8 @@
 # ADR-005: Explicit orchestrator; Ollama, Anthropic and Scripted providers
 
-**Status:** Accepted (2026-11-26)
+**Status:** Accepted (2026-11-26). Amendment 1 proposed 2026-11-27 (M4 Stage 0), **pending the
+owner's approval**: see [Amendment 1](#amendment-1-2026-11-27-model-choice-moves-to-m4). The
+original decision below is unchanged.
 
 ## Context
 The spec wants a small, explicit orchestrator and a `ModelProvider` protocol with an Ollama default and
@@ -32,3 +34,52 @@ an optional Anthropic adapter. A Claude Code subscription is **not** API access.
 
 ## Alternatives
 - *LangGraph, Pydantic AI or similar.* Possible later. They add abstraction before the control flow is understood.
+
+## Amendment 1 (2026-11-27): model choice moves to M4
+
+**Status:** Proposed, **pending the owner's approval of this text.**
+- **Already decided by the owner (2026-11-27):**
+  - `qwen3:8b` stays the default;
+  - `qwen3:8b` and `qwen3:14b` are compared on the dev split;
+  - the held-out split is reserved for the final evaluation.
+- **Not yet approved:** this recorded text.
+
+### Context
+The decision above says the Ollama model "is chosen in M3 by a small dev-set comparison and
+recorded". That comparison was not run in M3. M3 used `qwen3:8b`, the configured default, and
+checked it only with a smoke run on one ticket (3 of 3 runs reached `PENDING_REVIEW`). A smoke run
+is not an evaluation. M4 builds the golden dev set the comparison needs (ADR-010, Amendment 1).
+
+### Decision
+- **The comparison moves from M3 to M4** (M4 Stage 6). It replaces "chosen in M3" above.
+- **`qwen3:8b` remains the default model** until the owner approves a change. Nothing in M4
+  changes the default automatically, whatever the results.
+- **Candidates:** `qwen3:8b` and `qwen3:14b`, both installed locally, compared by measurement in
+  the quality tier (`scripts/run_eval.py --tier quality`).
+- **Splits:**
+  - the comparison runs on the **dev** split, with repeats (default 3), and reports the variance;
+  - the **held-out** split is reserved for the final evaluation and runs once per model;
+  - prompts and skills are never tuned against held-out.
+- **Same settings for both models:** the provider settings used in M3 (loopback only,
+  temperature 0, fixed seed 42, thinking off, per-call timeout). Every run records the model
+  digest and the other ADR-010 metadata.
+- **What the comparison reports:**
+  - macro-F1 and routing accuracy, against the ADR-010 targets;
+  - first-pass tool accuracy and evidence coverage;
+  - unsupported-claim rate and parse-failure rate;
+  - p50 and p95 latency.
+  A missed target shows "NOT MET" and is never lowered.
+- **Safety does not depend on the choice:** whichever model is chosen, the safety tier runs with
+  `ScriptedProvider` and is unaffected.
+- **The owner decides** from the written comparison. The chosen model and its digest are recorded
+  here and in `DECISIONS.md`.
+
+### Consequences
+- The default is not changed on the strength of a smoke run.
+- The comparison costs local time: roughly 10–15 minutes per `qwen3:8b` pass over 30 cases, and
+  about twice that for `qwen3:14b` (estimates from M3 smoke runs, to be confirmed by measurement).
+
+### Alternatives considered
+- **Keep "chosen in M3" and backfill a result.** Rejected: the comparison was not run, and the
+  record must not claim it was.
+- **Switch to `qwen3:14b` now.** Rejected: there is no measurement yet.
