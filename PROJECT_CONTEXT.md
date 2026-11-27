@@ -46,9 +46,9 @@ Source-of-truth ownership: [docs/source-of-truth.md](docs/source-of-truth.md).
                                app (users, audit, drafts, proposals), sec (RLS helper)
 ```
 
-- **Layering** is machine-checked by 5 import-linter contracts: domain is pure; the API and MCP
-  layers never import connectors, the store or the database directly; connector adapters are
-  independent of each other.
+- **Layering** is machine-checked by 6 import-linter contracts: domain is pure; the agent runtime
+  and MCP layers never import connectors, the store or the database directly; the API never
+  imports connectors or the database directly; connector adapters are independent of each other.
 - **Mock systems** are separate schemas, each read or written by its own Postgres login role, with
   row-level security on every tenant-owned table (ADR-003).
 - **Composition root:** `services/container.py` wires engines into connectors and services.
@@ -86,8 +86,8 @@ and [docs/adr/](docs/adr/README.md).
    allowed only if the caller may read that record type.
 6. **Privacy:** synthetic aliases only; audit records hold keyed pseudonyms and route templates;
    logs are redacted; database exceptions hide bound parameters.
-7. **Fail closed:** drafts are `NEEDS_MANUAL_REVIEW` until the M3 validator exists; errors become
-   generic responses.
+7. **Fail closed:** a draft is `NEEDS_MANUAL_REVIEW` unless the server-side validator passes it
+   (then `PENDING_REVIEW`, still awaiting a human); errors become generic responses.
 8. **Honesty:** the audit log is tamper-evident, not immutable; mock identity is not SSO; no
    compliance claims.
 

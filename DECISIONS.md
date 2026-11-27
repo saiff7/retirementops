@@ -146,6 +146,17 @@ was decided, why, and what was rejected. Owner decisions are dated.
   read, the model call and the trace write; they fail if the lock is removed. Non-scalar tool
   arguments are refused as `host_refused_malformed_arguments`.
 
+## Implementation decisions inside M3 (stage 7, 2026-11-27, uncommitted)
+
+- **Developer skills live in `.claude/skills/<name>/SKILL.md`** (Claude Code format: `name` and
+  `description` frontmatter). They are instructions for working on this repository, separate from
+  the runtime skills in `skills/`, and point to `CLAUDE.md` rather than repeating it.
+- **`write-eval` documents the current harness only.** It describes safety-invariant tests with
+  `ScriptedProvider` and labelled cases from the seed, and states that the M4 runner, golden
+  files and reports are not built yet (ADR-010 unchanged).
+- **`security-review` keeps the planned name.** Inside this project it provides the
+  RetirementOps checklist in place of Claude Code's generic review of the same name.
+
 ## Awaiting approval
 
 - Nothing for M2. M2 was approved and committed as `91f959b` (2026-11-26). ADR-013 is accepted

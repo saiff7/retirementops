@@ -1,6 +1,6 @@
 # Known issues
 
-_Last updated: 2026-11-26._ Three sections, kept separate on purpose:
+_Last updated: 2026-11-27._ Three sections, kept separate on purpose:
 - **Open:** unresolved; should be fixed.
 - **Deferred:** planned for a named milestone.
 - **Accepted:** a deliberate, documented trade-off for this prototype.
@@ -26,7 +26,7 @@ There are no known critical, high or medium open security findings.
 
 | Milestone | Item |
 |---|---|
-| M3 | Done (committed in `1515ed2`): run-scoped tokens, the server-side queue check, the draft validator and `PENDING_REVIEW` (migration 0006). Still to come in M3: skills, providers, the orchestrator and run-trace storage. Prompt construction now masks employer employee refs (`E-…`) and SSN-like values (`agent_runtime/providers/prompts.py`); `get_ticket_details` itself still masks only SSN-like values, so other MCP clients see `E-…` refs. The spec's `skills/service-ticket-triage/eval-cases.jsonl` is left to M4 (golden cases). |
+| M3 | Done (`1515ed2`, `d7a9a63`, stage 7 uncommitted): run-scoped tokens, the server-side queue check, the draft validator and `PENDING_REVIEW` (migration 0006), skills, providers, the orchestrator, run-trace storage and the developer skills. Prompt construction now masks employer employee refs (`E-…`) and SSN-like values (`agent_runtime/providers/prompts.py`); `get_ticket_details` itself still masks only SSN-like values, so other MCP clients see `E-…` refs. The spec's `skills/service-ticket-triage/eval-cases.jsonl` is left to M4 (golden cases). |
 | M5 | A separate database role for edits, status changes, approvals and execution; a status-transition trigger; four-eyes enforcement; UI upload route for payroll files. |
 | M6 | OAuth 2.1 at the Cloudflare edge; remote (non-loopback) MCP exposure; edge rate limiting. |
 | M7 | Compliance MCP server; playbook (≥30 passages) and vendor (≥20) seed data. |
