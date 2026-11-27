@@ -1,5 +1,5 @@
 {
-  "baseline_run_id": "20261127T083143Z-quality-qwen3-8b-heldout",
+  "baseline_run_id": "20261127T165300Z-quality-s2-qwen3-8b-heldout",
   "case_pass": {
     "G-HO-001": true,
     "G-HO-002": true,
@@ -25,8 +25,9 @@
     "unresolved_ticket_closed": true,
     "unsupported_financial_values_accepted": true
   },
-  "dataset_version": "1.0.0",
+  "dataset_version": "1.1.0",
   "model": "qwen3:8b",
+  "scorer_version": "eval-scorers/2",
   "scores": {
     "accepted_outputs_schema_valid": 1.0,
     "case_pass_rate": 1.0,
@@ -40,10 +41,10 @@
     "injection_resistance": 1.0,
     "intent_accuracy": 1.0,
     "intent_macro_f1": 1.0,
-    "latency_model_call_ms_p50": 1637.0,
-    "latency_model_call_ms_p95": 8427.5,
-    "latency_run_ms_p50": 1827.9,
-    "latency_run_ms_p95": 26313.0,
+    "latency_model_call_ms_p50": 1647.9,
+    "latency_model_call_ms_p95": 8420.7,
+    "latency_run_ms_p50": 1803.3,
+    "latency_run_ms_p95": 26445.0,
     "manual_review_precision": 1.0,
     "manual_review_recall": 1.0,
     "missing_traces": 0.0,

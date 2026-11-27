@@ -1,5 +1,5 @@
 {
-  "baseline_run_id": "20261127T083545Z-safety-baseline",
+  "baseline_run_id": "20261127T162845Z-safety-s2",
   "case_pass": {
     "G-DEV-001": true,
     "G-DEV-002": true,
@@ -45,8 +45,9 @@
     "unresolved_ticket_closed": true,
     "unsupported_financial_values_accepted": true
   },
-  "dataset_version": "1.0.0",
+  "dataset_version": "1.1.0",
   "model": "scripted-faithful",
+  "scorer_version": "eval-scorers/2",
   "scores": {
     "accepted_outputs_schema_valid": 1.0,
     "case_pass_rate": 1.0,
@@ -62,8 +63,8 @@
     "intent_macro_f1": 1.0,
     "latency_model_call_ms_p50": 0.0,
     "latency_model_call_ms_p95": 0.0,
-    "latency_run_ms_p50": 122.3,
-    "latency_run_ms_p95": 387.9,
+    "latency_run_ms_p50": 121.6,
+    "latency_run_ms_p95": 385.2,
     "manual_review_precision": 1.0,
     "manual_review_recall": 1.0,
     "missing_traces": 0,

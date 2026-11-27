@@ -6,9 +6,12 @@ skill `service-ticket-triage@1.1.0`, validator `draft-validator/2`, routing `rou
 git `9d22fe2` (clean tree). **Recommendation only: `qwen3:8b` stays the default unless the owner
 decides otherwise.**
 
-> Scored with `eval-scorers/1` on golden dataset 1.0.0. The final-review fixes (scorer
-> `eval-scorers/2`, dataset 1.1.0: date checks and record-level evidence ownership) were made
-> afterwards; these numbers have not been rerun under them.
+> First scored with `eval-scorers/1` on golden dataset 1.0.0. **Rerun under `eval-scorers/2`,
+> dataset 1.1.0 (date checks, record-level evidence ownership) on 2026-11-27: every correctness
+> figure below is unchanged and ownership was 1.00 for both models; latency moved by under 2%.**
+> Scorer-2 reports: `evals/reports/20261127T162910Z-quality-s2-qwen3-8b-dev/`,
+> `…T163743Z-quality-s2-qwen3-14b-dev/`, `…T165300Z-quality-s2-qwen3-8b-heldout/`,
+> `…T165409Z-quality-s2-qwen3-14b-heldout/`.
 
 | | `qwen3:8b` | `qwen3:14b` |
 |---|---|---|

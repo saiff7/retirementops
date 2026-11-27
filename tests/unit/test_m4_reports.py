@@ -202,13 +202,33 @@ def test_a_different_scorer_or_dataset_version_is_not_comparable() -> None:
     assert B.compare(now, old)["comparable"] is False
 
 
-def test_committed_baselines_are_reported_as_not_comparable_and_left_untouched(
-    golden: gd.GoldenDataset,
+def test_archived_scorer1_baseline_is_not_comparable_and_left_untouched(
+    golden: gd.GoldenDataset, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
 ) -> None:
-    path = B.baseline_path("safety", "all", "scripted-faithful")
-    before = path.read_bytes()
+    """The pre-fix (eval-scorers/1, dataset 1.0.0) baseline, kept in archive/, is never compared."""
+    archived = (
+        B.BASELINE_DIR
+        / "archive"
+        / "safety-all-scripted-faithful.eval-scorers-1.dataset-1.0.0.json"
+    )
+    before = archived.read_bytes()
+    (tmp_path / "safety-all-scripted-faithful.json").write_bytes(before)
+    monkeypatch.setattr(B, "BASELINE_DIR", tmp_path)
     summary = report.summarise(_run(golden))
     base = summary["baseline"]
     assert base["comparable"] is False and "eval-scorers/1" in base["reason"]
     assert "not comparable" in report.markdown(summary, [])
-    assert path.read_bytes() == before
+    assert archived.read_bytes() == before
+
+
+def test_committed_baselines_match_the_current_scorer_and_dataset(golden: gd.GoldenDataset) -> None:
+    from retirementops.evaluations.versions import SCORER_VERSION
+
+    files = sorted(B.BASELINE_DIR.glob("*.json"))
+    assert len(files) == 5
+    for f in files:
+        snap = json.loads(f.read_text())
+        assert snap["scorer_version"] == SCORER_VERSION, f.name
+        assert snap["dataset_version"] == golden.manifest.version, f.name
+    summary = report.summarise(_run(golden))
+    assert summary["baseline"]["comparable"] is True

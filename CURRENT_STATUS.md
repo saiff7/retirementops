@@ -103,6 +103,35 @@ CI has **no verified run** on GitHub: no push has been verified and no CI result
 dataset 1.0.0. They remain valid as history but must be rerun for scorer-2 numbers. The full
 suite was **not** run after these changes (it would rebuild `retirementops_test`).
 
+## Release preparation, Stage 1: re-evaluation under scorer 2 (2026-11-27)
+
+All runs at git `eb9e69a` (clean tree), `eval-scorers/2`, golden dataset 1.1.0, same model digests
+(`qwen3:8b` `500a1f067a9f`, `qwen3:14b` `bdbd181c33f2`). Reports:
+`evals/reports/20261127T162845Z-safety-s2/`, `…T162910Z-quality-s2-qwen3-8b-dev/`,
+`…T163743Z-quality-s2-qwen3-14b-dev/`, `…T165300Z-quality-s2-qwen3-8b-heldout/`,
+`…T165409Z-quality-s2-qwen3-14b-heldout/`.
+
+| Run | Gates | Macro-F1 / routing | Evidence coverage | Ownership | Case pass | Run p50 / p95 |
+|---|---|---|---|---|---|---|
+| Safety (104 runs) | all 11 passed | 1.00 / 1.00 (faithful) | 0.972 | 1.00 | 30/30 | 0.12 s / 0.39 s |
+| 8B dev ×3 | all passed | 1.00 / 1.00 | 0.870 | 1.00 | 0.95 | 2.2 s / 20.0 s |
+| 14B dev ×3 | all passed | 0.97 / 1.00 | 0.926 | 1.00 | 0.90 | 3.6 s / 34.3 s |
+| 8B held-out | all passed | 1.00 / 1.00 | 0.889 | 1.00 | 1.00 | 1.8 s / 26.4 s |
+| 14B held-out | all passed | 1.00 / 1.00 | 0.944 | 1.00 | 1.00 | 3.1 s / 34.4 s |
+
+- Every correctness metric is identical to the scorer-1 runs; only latency moved (under 2%). No
+  repeat-to-repeat variance outside latency. All 760 cited and retrieved records carry ownership
+  data; no unsupported dates; no participant refs, ticket IDs or employee refs in any report.
+- The same known misses remain: G-DEV-001 (both models: employer-only draft, `MISSING_KEY_AMOUNT`,
+  L-7) and G-DEV-002 (14B: draft contradicted the finding; the validator stopped it).
+- Held-out was run a second time per model (first under scorer 1). Nothing was tuned in between;
+  only the scoring changed.
+- **Re-baselined:** the five scorer-1 baselines were copied unchanged to
+  `evals/reports/baselines/archive/`, then the five runs above were recorded with
+  `--set-baseline`. A fresh safety run afterwards: all gates passed, 0 regressions.
+- Database impact: only `retirementops_eval` was rebuilt (each run). Dev 23849 at 0005 and test
+  254440: unchanged. The full suite was not run.
+
 ## Remaining work
 
 1. **Owner review of M4** (Stages 1–8, committed locally on 2026-11-27): code, initial baselines,

@@ -1,0 +1,54 @@
+{
+  "calc_version": "contribution-calc/1",
+  "database": "retirementops_eval",
+  "dataset": "retirementops-golden",
+  "dataset_aggregate_sha256": "82eaf61bf4f1820f2a276aad3c153b07c14f9bb3a0b63cc9b83edf2790b2f53c",
+  "dataset_version": "1.1.0",
+  "eval_config": {
+    "budgets": {
+      "max_argument_bytes": 2048,
+      "max_model_calls": 8,
+      "max_tool_calls": 12,
+      "max_tool_turns": 4,
+      "max_wall_seconds": 600.0
+    },
+    "guard": {
+      "anon_audit_global": 10000,
+      "anon_audit_per_client": 1000,
+      "audit_window_seconds": 60.0,
+      "auth_failures_per_minute": 1000,
+      "client_burst": 100000,
+      "client_requests_per_minute": 100000,
+      "max_tracked_keys": 10000,
+      "principal_burst": 100000,
+      "principal_requests_per_minute": 100000
+    },
+    "ollama": {
+      "seed": 42,
+      "temperature": 0,
+      "think": false
+    },
+    "timeout_seconds": 120.0
+  },
+  "finished_at": null,
+  "git_dirty": false,
+  "git_sha": "eb9e69ae762e92ee98c58c7bdb4fb75ff9b91a51",
+  "model": "qwen3:14b",
+  "model_digest": "bdbd181c33f2ed1b31c972991882db3cf4d192569092138a7d29e973cd9debe8",
+  "prompt_sha256": "694cca6ef01f4203f44638df16e2acbddc217215dd619f3fd454b8a6a92a993b",
+  "provider": "ollama",
+  "python": "3.12.14",
+  "repeat_count": 3,
+  "routing_rules_version": "routing-rules/1",
+  "run_id": "20261127T163743Z-quality-s2-qwen3-14b-dev",
+  "scorer_version": "eval-scorers/2",
+  "seed": 42,
+  "seed_dataset_hash": "f4164ef4e377761eb93ede614d72cca0ff60149e1ec0cf2f41e95368ce901a96",
+  "skill": "service-ticket-triage@1.1.0",
+  "skill_sha256": "233864767b0becbfa6c970ea3db7ea7ab7c5696506bc4dc48726fb4c75b7f0a3",
+  "split": "dev",
+  "started_at": "2026-11-27T16:37:43+00:00",
+  "tier": "quality",
+  "tool_schema_sha256": "0e2ec23fa558ce1e2fba540d3e7170b2c20205c7bfc7ff8c3ed9d9803d3fdb0b",
+  "validator_version": "draft-validator/2"
+}

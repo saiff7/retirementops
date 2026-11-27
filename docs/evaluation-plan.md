@@ -64,7 +64,8 @@ approval/rejection rates show "not applicable until M5".
 Every run records the dataset version (`data/golden/manifest.json`, now 1.1.0) and the scorer
 version (`evaluations/versions.py`, now `eval-scorers/2`). Results and baselines from different
 versions are not compared. The reports committed on 2026-11-27 before the final-review fixes were
-scored with `eval-scorers/1` on dataset 1.0.0.
+scored with `eval-scorers/1` on dataset 1.0.0; their baselines are kept in
+`evals/reports/baselines/archive/`. The current baselines are the scorer-2 runs of 2026-11-27.
 
 ## Known limits
 

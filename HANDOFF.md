@@ -186,6 +186,13 @@ blind spot), OPEN-11/12 (from the Stage 0 review).
   its baseline is not comparable. To get scorer-2 numbers, rerun the safety tier and the four
   quality runs, then re-baseline deliberately with `--set-baseline`.
 
+## Release preparation, Stage 1 (2026-11-27)
+
+Re-evaluated under `eval-scorers/2` / dataset 1.1.0 (safety tier plus all four quality runs), all
+gates passed, results identical to scorer 1 except latency; scorer-1 baselines archived in
+`evals/reports/baselines/archive/` and replaced by the scorer-2 runs. Details: CURRENT_STATUS.md.
+Next: Stage 2 (classify every outstanding issue) after the owner's review.
+
 ## Decisions awaiting approval
 
 1. Whether and when to push `main` to GitHub. No push has been verified; pushing would let CI run

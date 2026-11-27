@@ -269,6 +269,16 @@ approved decision; the ones that go beyond the ADR are marked *addition*.
   its participant and plan; a rule to its plan (and be a required rule when cited); a policy
   snippet must exist as provider-wide knowledge. Records without ownership data earn no credit.
 
+## Release preparation decisions (2026-11-27)
+
+- **Re-baseline under scorer 2 (owner-requested Stage 1):** the scorer-1 baselines are preserved
+  byte-for-byte in `evals/reports/baselines/archive/<name>.eval-scorers-1.dataset-1.0.0.json`
+  (outside the lookup path) before `--set-baseline` replaced them. Criteria checked first: complete
+  metadata, clean git tree, matching scorer and dataset versions, all safety gates passed, quality
+  targets met. Historical reports are never deleted.
+- **Held-out re-measured once more** under scorer 2 (no tuning in between, same prompts, skill and
+  model digests), at the owner's request; recorded as a re-measurement, not a new tuning round.
+
 ## Awaiting approval
 
 - Reviewing the M4 implementation (Stages 1–8, committed locally 2026-11-27), including the

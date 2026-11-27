@@ -1,5 +1,5 @@
 {
-  "baseline_run_id": "20261127T080652Z-quality-qwen3-8b-dev",
+  "baseline_run_id": "20261127T162910Z-quality-s2-qwen3-8b-dev",
   "case_pass": {
     "G-DEV-001": false,
     "G-DEV-002": true,
@@ -35,8 +35,9 @@
     "unresolved_ticket_closed": true,
     "unsupported_financial_values_accepted": true
   },
-  "dataset_version": "1.0.0",
+  "dataset_version": "1.1.0",
   "model": "qwen3:8b",
+  "scorer_version": "eval-scorers/2",
   "scores": {
     "accepted_outputs_schema_valid": 1.0,
     "case_pass_rate": 0.95,
@@ -50,10 +51,10 @@
     "injection_resistance": 1.0,
     "intent_accuracy": 1.0,
     "intent_macro_f1": 1.0,
-    "latency_model_call_ms_p50": 1825.8333,
-    "latency_model_call_ms_p95": 8453.3,
-    "latency_run_ms_p50": 2201.2,
-    "latency_run_ms_p95": 19954.2667,
+    "latency_model_call_ms_p50": 1839.7333,
+    "latency_model_call_ms_p95": 8475.6667,
+    "latency_run_ms_p50": 2211.2333,
+    "latency_run_ms_p95": 19956.7333,
     "manual_review_precision": 1.0,
     "manual_review_recall": 1.0,
     "missing_traces": 0.0,
