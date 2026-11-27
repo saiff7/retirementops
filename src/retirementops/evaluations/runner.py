@@ -129,6 +129,7 @@ class CaseResult(_Strict):
     all_model_calls: list[dict[str, Any]] = Field(default_factory=list)
     host_feedback_used: bool = False
     parse_failures: int = 0
+    accepted_outputs_valid: bool = True  # every accepted model output re-validates strictly
     model_calls: int = 0
     model_errors: list[str] = Field(default_factory=list)
     model_latency_ms: list[float] = Field(default_factory=list)
@@ -297,6 +298,20 @@ def check_metadata(meta: RunMetadata) -> None:
 
 
 # ---------------------------------------------------------------- one case
+def _revalidates(rec: Any) -> bool:
+    """Schema-validity gate: re-validate every output the system accepted, strictly."""
+    try:
+        if rec.classification is not None:
+            ClassificationResult.model_validate(rec.classification.model_dump())
+        if rec.draft is not None:
+            DraftResponse.model_validate(rec.draft.model_dump())
+        for turn in rec.tool_turns:
+            ToolDecision.model_validate({"tool_calls": turn, "done": True})
+    except Exception:  # noqa: BLE001 - any failure means an invalid output was accepted
+        return False
+    return True
+
+
 def _features(rb_draft: dict[str, Any], body: str, cited: list[dict[str, Any]]) -> DraftFeatures:
     return DraftFeatures(
         status=str(rb_draft["status"]),
@@ -364,6 +379,7 @@ class CaseRunner:
         result.first_pass_calls = rec.first_pass_calls
         result.all_model_calls = rec.all_calls
         result.host_feedback_used = any(rec.tool_turn_feedback)
+        result.accepted_outputs_valid = _revalidates(rec)
         if rec.classification is not None:
             result.predicted_intent = rec.classification.intent.value
             result.predicted_confidence = rec.classification.confidence
