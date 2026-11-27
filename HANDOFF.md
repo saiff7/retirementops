@@ -193,6 +193,14 @@ gates passed, results identical to scorer 1 except latency; scorer-1 baselines a
 `evals/reports/baselines/archive/` and replaced by the scorer-2 runs. Details: CURRENT_STATUS.md.
 Next: Stage 2 (classify every outstanding issue) after the owner's review.
 
+## Publication (2026-11-27)
+
+Before the first push, at the owner's choice, the personal email in every commit's author and
+committer fields was replaced with the GitHub noreply address (file trees byte-identical; names,
+dates and messages unchanged). All commit hashes changed; documentation and report metadata
+written earlier cite the original hashes. Mapping: [docs/commit-hash-map.md](docs/commit-hash-map.md).
+This repository's local `user.email` is now the noreply address.
+
 ## Decisions awaiting approval
 
 1. Whether and when to push `main` to GitHub. No push has been verified; pushing would let CI run
