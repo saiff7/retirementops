@@ -1,0 +1,11 @@
+--- a/src/retirementops/domain/draft_validator.py
++++ b/src/retirementops/domain/draft_validator.py
+@@ -392,7 +392,7 @@
+         add(
+             Problem.NONCANONICAL_AMOUNT, f"{n} amount(s) not written in the standard $1,234.56 form"
+         )
+-    if unsupported:
++    if unsupported and False:  # DELIBERATE BREAK (demo only): invented amounts are never flagged
+         add(Problem.UNSUPPORTED_AMOUNT, f"{len(unsupported)} amount(s) not produced by the finding")
+     bad_pct = sum(1 for p in pct if p.replace(" ", "") not in truth.percents)
+     if bad_pct:

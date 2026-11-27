@@ -46,7 +46,9 @@ Source-of-truth ownership: [docs/source-of-truth.md](docs/source-of-truth.md).
                                app (users, audit, drafts, proposals), sec (RLS helper)
 ```
 
-- **Layering** is machine-checked by 6 import-linter contracts: domain is pure; the agent runtime
+- **Layering** is machine-checked by 7 import-linter contracts: domain is pure; the M4 evaluation
+  package sits above the agent runtime and touches the database only in its provisioning and
+  read-only observation modules; the agent runtime
   and MCP layers never import connectors, the store or the database directly; the API never
   imports connectors or the database directly; connector adapters are independent of each other.
 - **Mock systems** are separate schemas, each read or written by its own Postgres login role, with

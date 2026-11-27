@@ -19,8 +19,9 @@ draft versions, evaluation gates, audit and handover.
 | M0 Discovery & design | Done, approved 2026-11-26 |
 | M1 Synthetic business backend | Done, approved 2026-11-26 |
 | M2 Service Operations MCP server | Done: completed, reviewed, approved and committed 2026-11-26 (`91f959b`) |
-| M3 First skill and worker | **In progress** (owner approved the start 2026-11-26) |
-| M4–M8 | Not started |
+| M3 First skill and worker | Done (`1515ed2`, `d7a9a63`, `3ab1238`) |
+| M4 Evaluation suite | Implemented locally (2026-11-27); awaiting owner review. CI step prepared, never run on GitHub |
+| M5–M8 | Not started |
 
 Project state for humans and AI sessions:
 - [PROJECT_CONTEXT.md](PROJECT_CONTEXT.md)
@@ -95,6 +96,16 @@ Ten narrow Service Operations tools over stdio and Streamable HTTP, with scope-f
 server-side validation, tenant isolation, verified evidence, and drafts and proposals that never
 send or assign. See [docs/mcp-service-ops.md](docs/mcp-service-ops.md) and the
 [Inspector transcript](docs/mcp-inspector-transcript.md).
+
+## Evaluation suite (M4)
+
+A golden dataset (30 synthetic cases), a dedicated `retirementops_eval` database, a deterministic
+safety tier that blocks on any ADR-010 gate failure, and a local model-quality tier. See
+[docs/evaluation-plan.md](docs/evaluation-plan.md).
+
+```bash
+uv run python scripts/run_eval.py --tier safety
+```
 
 ## Design docs
 

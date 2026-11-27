@@ -1,6 +1,6 @@
 # Current status
 
-_Last updated: 2026-11-27 (M3 complete; M4 Stage 0 approved and committed in `3670c4e`; Stage 1 not started)._
+_Last updated: 2026-11-27 (M4 Stages 1–8 implemented and committed locally; awaiting owner review; never pushed)._
 
 ## Milestones
 
@@ -10,7 +10,7 @@ _Last updated: 2026-11-27 (M3 complete; M4 Stage 0 approved and committed in `36
 | M1 Synthetic business backend | Done, approved | `ac9e36b` |
 | M2 Service Operations MCP server | Done: completed, reviewed three times, approved and committed | `91f959b` |
 | M3 First skill and worker | **Complete: all seven stages committed.** Stages 1–5 in `1515ed2`, stage 6 in `d7a9a63`, stage 7 (developer skills) in `3ab1238` | `1515ed2`, `d7a9a63`, `3ab1238` |
-| M4 Evaluation suite | **Stage 0 (decisions and ADR amendments, documentation only) approved and committed 2026-11-27.** Stages 1–8 not started | `3670c4e` |
+| M4 Evaluation suite | **Stages 0–8 implemented and committed locally (2026-11-27); awaiting owner review.** Acceptance: deliberate-break shown locally; local Ollama reports committed; GitHub CI not run (needs a push, OPEN-1) | `3670c4e` … see the M4 progress table |
 | M5–M8 | Not started | — |
 
 ## Repository state
@@ -142,5 +142,6 @@ CI has **no verified run** on GitHub: no push has been verified and no CI result
 | 5 Safety tier and gates | **Done.** `evaluations/gates.py` (the eight ADR-010 gates as defined in Amendment 1, plus traces written, adversarial runs fail closed, faithful model reproduces golden), `evaluations/safety.py` (30 faithful runs, 60-run adversarial matrix: the six M3 scripts plus echo-injection, self-approval draft, write tool as model, oversized arguments and money-promise draft; 14-run misclassification probe), `evaluations/cli.py` + `scripts/run_eval.py` (provisioning child process first, then unprivileged run-and-score; exit 1 on any gate failure), `evaluations/report.py` (redacted reports). Local run: 104 runs, **all 11 gates passed**, injection 8/8, adversarial 60/60 failed closed | `tests/evals/test_m4_safety_gates.py` 26 passed (incl. live sabotage: disabled validator trips the financial gate and makes the CLI exit 1; broken trace store trips the trace gate; removed host allowlist is still caught by the server); full suite 955 passed, 1 skipped (2026-11-27) |
 | 6 Quality tier, 8B vs 14B | **Done.** Dev (20 cases × 3 repeats) then held-out (10 × 1) for both models; reports committed under `evals/reports/`; write-up in [docs/model-comparison-m4.md](docs/model-comparison-m4.md). Dev: 8B macro-F1 1.00, routing 1.00, case pass 0.95; 14B macro-F1 0.97, routing 1.00, case pass 0.90. Held-out: both 1.00 / 1.00, case pass 1.00. All safety gates passed for both. Correctness metrics had zero variance across repeats. **Default stays `qwen3:8b`** (recommendation; owner decides) | `scripts/run_eval.py --tier quality` runs on 2026-11-27: 8B dev 8 min 33 s, 14B dev 15 min 36 s, held-out about 1–2 min each |
 | 7 Reports, baselines, regressions | **Done.** `evaluations/report.py` (metadata, redacted results, summary, Markdown; a leaking file is deleted and the run fails) and `evaluations/baseline.py` (flags any drop in a correctness metric, latency rises above 25%, pass→fail cases and gates); initial baselines in `evals/reports/baselines/` for the safety tier and all four quality runs (set by this run with `--set-baseline`; **owner review pending**). Two consecutive safety runs (104 runs each) are identical apart from timing; the second shows 0 regressions against the baseline | `tests/unit/test_m4_reports.py` 8 passed (byte-identical rendering, schema, redaction, regression kinds, latency tolerance) |
+| 8 CI integration and deliberate break | **Done locally; never run on GitHub.** `.github/workflows/ci.yml` gains a golden `--check` step and a blocking `run_eval.py --tier safety` step (no artifact upload); `scripts/demo_deliberate_break.py` applies `evals/deliberate-break/disable-unsupported-amount-check.patch` in a temporary worktree and shows the safety tier exit 1 with `unsupported_financial_values_accepted` and `adversarial_runs_fail_closed` failed; `docs/evaluation-plan.md` | Every CI step run locally in order on 2026-11-27: secret scan, `uv sync --locked`, ruff, format, mypy, 7 contracts, golden check, pytest **963 passed, 1 skipped**, safety tier all gates passed (exit 0). Demo: broken build exit 1, demonstrated. **No push, so no GitHub CI result (OPEN-1)** |
 
 Open risks and debt: [KNOWN_ISSUES.md](KNOWN_ISSUES.md).

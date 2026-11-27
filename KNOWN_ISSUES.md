@@ -11,7 +11,7 @@ There are no known critical, high or medium open security findings.
 
 | ID | Severity | Issue | Recommended resolution |
 |---|---|---|---|
-| OPEN-1 | Medium (process) | CI has no verified run on GitHub. No push has been verified, and no CI result has been observed. | Push a branch and confirm `.github/workflows/ci.yml` passes before relying on it. |
+| OPEN-1 | Medium (process) | CI has no verified run on GitHub. No push has been verified, and no CI result has been observed. M4 adds a blocking safety-tier step that has only been run locally; M4 acceptance needs a real GitHub run. | Push a branch and confirm `.github/workflows/ci.yml` passes before relying on it. |
 | OPEN-2 | Low | GitHub Actions are pinned to major tags, not commit SHAs. | Pin `actions/checkout` and `astral-sh/setup-uv` to SHAs. |
 | OPEN-3 | Low | The REST API ignores unknown query parameters (MCP tools reject extras). | Add a strict query-parameter dependency to the API routes. |
 | OPEN-4 | Low | All tests share one session database; ordering issues have occurred once. | Per-test transactions or per-module databases for mutating tests. |
@@ -30,7 +30,7 @@ There are no known critical, high or medium open security findings.
 | Milestone | Item |
 |---|---|
 | M3 | Done (`1515ed2`, `d7a9a63`, `3ab1238`): run-scoped tokens, the server-side queue check, the draft validator and `PENDING_REVIEW` (migration 0006), skills, providers, the orchestrator, run-trace storage and the developer skills. Prompt construction now masks employer employee refs (`E-…`) and SSN-like values (`agent_runtime/providers/prompts.py`); `get_ticket_details` itself still masks only SSN-like values, so other MCP clients see `E-…` refs. The spec's `skills/service-ticket-triage/eval-cases.jsonl` is replaced by M4 golden cases in `data/golden/{dev,heldout}/` (ADR-010 Amendment 1, 2026-11-27). |
-| M4 | Evaluation suite (Stages 1–8, ADR-010 Amendment 1): golden datasets, `retirementops_eval`, runner, scorers, safety gates in CI, local model-quality reports, the `qwen3:8b` vs `qwen3:14b` comparison. Metrics that need M5 are reported as N/A. |
+| M4 | Implemented locally (2026-11-27, Stages 1–8); awaiting owner review. Still open: GitHub CI has never run the new safety step (OPEN-1); baselines were set by the autonomous run and need owner review; the golden set has only 5 PENDING_REVIEW cases (expand toward the spec's 60–100). Metrics that need M5 are reported as N/A. |
 | M5 | A separate database role for edits, status changes, approvals and execution; a status-transition trigger; four-eyes enforcement; UI upload route for payroll files. |
 | M6 | OAuth 2.1 at the Cloudflare edge; remote (non-loopback) MCP exposure; edge rate limiting. |
 | M7 | Compliance MCP server; playbook (≥30 passages) and vendor (≥20) seed data. |

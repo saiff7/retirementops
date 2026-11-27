@@ -210,6 +210,51 @@ Each stage starts only with the owner's approval and ends with real test output
 | 7 | Reports, baseline comparison and regression flags; commit a local Ollama report |
 | 8 | CI integration and a deliberate-break demonstration (needs a push, OPEN-1) |
 
+## Implementation decisions inside M4 (Stages 1–8, 2026-11-27, owner-authorised overnight run)
+
+Made within the approved design (ADR-010 Amendment 1, ADR-005 Amendment 1). None changes an
+approved decision; the ones that go beyond the ADR are marked *addition*.
+
+- **Golden set (Stage 1):**
+  - all 30 cases are seed tickets; no inline tickets were needed, so inline support was not built;
+  - expectations come from `ticket_labels` plus an independent reference calculation in
+    `scripts/build_golden.py`, which deliberately does not call `domain/contributions.py`; a unit
+    test cross-checks the two;
+  - the expected final state and first reason code follow the documented M3 drafting scope;
+  - payroll rows are expected by type and count, because their IDs come from a database sequence;
+  - only five cases (clean MATCH/DISCREPANCY tickets) expect PENDING_REVIEW.
+- **Settings (Stage 2):** `postgres_superuser_password` and `ro_pw_ro_owner` are optional;
+  `Settings.unprivileged()` builds settings without them; `role_password` and
+  `superuser_conninfo` raise `MissingSecret`, which is the single, clear failure every privileged
+  entry point inherits. The API, MCP server and worker still load both (OPEN-11; owner decision).
+- **Reader (Stage 2):** `svc_eval_reader` is a `DbRole` but in `NON_RUNTIME_ROLES`; its grants are
+  a fixed list in `evaluations/provision.py`. A live check that the privilege tests fail on an
+  over-granted reader was **not** run: it would have meant giving the reader write rights, which
+  the owner prohibited; the tests assert exact equality with the catalog instead.
+- **Runner (Stage 3):** an explicit evaluation rate-limit configuration (`EVAL_GUARD`) and the
+  production run budgets, both recorded in every run's metadata. The "faithful" scripted model
+  answers with the golden intent and adds no risk flags, so the safety tier tests the host's own
+  detectors, not a model.
+- **Scoring (Stage 4):**
+  - "predicted manual review" means the run stopped for a reason other than the M3 drafting
+    scope (`NO_AUTOMATED_DRAFT_FOR_INTENT`);
+  - first-pass argument accuracy checks participant, plan and pay period; `effective_date` is left
+    to the host's own resolution check;
+  - unsupported claims are amounts, identifiers and action claims outside the golden oracle, found
+    by the scorer's own small patterns (never the draft validator).
+- **Gates (Stage 5):** *addition*: three blocking gates beyond the eight ADR-010 gates — traces
+  written, every adversarial script fails closed, and the faithful model reproduces every golden
+  expectation. "Duplicate execution" uses the store's existing deduplication (one open proposal
+  per ticket and queue) plus a registry check that no execution-like tool exists.
+- **Entry point (Stage 5):** `scripts/run_eval.py` landed with Stage 5, not Stage 3, because its
+  exit code depends on the gates. The quality tier always exits 0 (reported, never blocking).
+- **Reports (Stages 5, 7):** ticket IDs are redacted as well as participant references; a report
+  that still contains one is deleted and the run fails. Baselines flag any drop in a correctness
+  metric and a latency rise above 25%; setting a baseline is an explicit `--set-baseline` step.
+- **Deliberate break (Stage 8):** a patch applied in a temporary git worktree
+  (`scripts/demo_deliberate_break.py`) instead of a committed broken branch, so no broken code is
+  ever committed; pushing a branch with the same patch would show CI failing on GitHub.
+
 ## Awaiting approval
 
 - Starting M4 Stage 1. Stage 0 is approved and committed (`3670c4e`).

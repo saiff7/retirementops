@@ -147,7 +147,7 @@ rules engine. Plus `.claude/skills/add-connector`, `add-mcp-tool`, `write-eval` 
 finding. Scripted adversarial runs (invented amount, cross-tenant call, unlisted tool, malformed JSON,
 timeout) each end in `NEEDS_MANUAL_REVIEW`. No connector write happens during any run.
 
-### M4: Evaluation suite (Stage 0 approved and committed 2026-11-27, `3670c4e`; Stages 1–8 not started)
+### M4: Evaluation suite (Stages 0–8 implemented and committed locally 2026-11-27; awaiting owner review; GitHub CI not yet run)
 **Build:** 30 golden cases split into dev and held-out, covering normal, ambiguous, missing-data,
 conflicting, cross-tenant and injection cases. Also scorers for the spec §12 metrics, a report with full
 version metadata, and a CI workflow running the safety tier.

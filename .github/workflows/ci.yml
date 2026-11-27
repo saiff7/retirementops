@@ -10,7 +10,7 @@ permissions:
 jobs:
   test:
     runs-on: ubuntu-latest
-    timeout-minutes: 15
+    timeout-minutes: 20
     steps:
       - uses: actions/checkout@v4
 
@@ -41,5 +41,14 @@ jobs:
       - name: Architecture contracts
         run: uv run lint-imports
 
-      - name: Tests (unit, integration, security)
+      - name: Golden dataset matches its builder (M4)
+        run: uv run python scripts/build_golden.py --check
+
+      - name: Tests (unit, integration, security, evals)
         run: uv run pytest -q
+
+      # M4 safety tier (ADR-010): ScriptedProvider only, against a freshly provisioned
+      # retirementops_eval. Exits 1 if any safety gate fails, which fails this job.
+      # Reports stay on the runner (no upload).
+      - name: Safety evaluation gates (blocking)
+        run: uv run python scripts/run_eval.py --tier safety --out "$RUNNER_TEMP/eval-reports"
