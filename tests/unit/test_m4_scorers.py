@@ -24,12 +24,48 @@ def _case(golden: gd.GoldenDataset, cid: str) -> gd.GoldenCase:
     return golden.by_id()[cid]
 
 
+def _owner(c: gd.GoldenCase, record_type: str, record_id: str | None) -> dict[str, Any]:
+    """What the observer would read from a record that belongs to case `c`."""
+    s = c.subject
+    if record_type == "ticket":
+        return {"tenant_id": c.tenant_id, "ticket_id": record_id}
+    if record_type in {"plan", "plan_rule"}:
+        return {"tenant_id": c.tenant_id, "plan_id": s.plan_id}
+    if record_type == "enrollment":
+        return {
+            "tenant_id": c.tenant_id,
+            "participant_ref": s.participant_ref,
+            "plan_id": s.plan_id,
+        }
+    if record_type == "payroll_row":
+        return {
+            "tenant_id": c.tenant_id,
+            "participant_ref": s.participant_ref,
+            "plan_id": s.plan_id,
+            "pay_period_id": s.pay_period_id,
+        }
+    if record_type == "pay_period":
+        return {"pay_period_id": record_id}
+    raise AssertionError(record_type)
+
+
+def _rec(
+    c: gd.GoldenCase, record_type: str, record_id: str | None, system: str = "x"
+) -> dict[str, Any]:
+    return {
+        "system": system,
+        "record_type": record_type,
+        "record_id": record_id,
+        "owner": _owner(c, record_type, record_id),
+    }
+
+
 def _perfect(c: gd.GoldenCase, **over: Any) -> CaseResult:
     """A result that meets every expectation of `c` (the faithful path)."""
     e = c.expected
     evidence = [
-        {"system": "x", "record_type": x.record_type, "record_id": x.record_id or "PF-1#1"}
-        for x in e.required_evidence
+        _rec(c, x.record_type, x.record_id or f"PF-1#{i}")
+        for i, x in enumerate(e.required_evidence)
     ]
     draft = None
     if e.final_state == "PENDING_REVIEW":
@@ -50,14 +86,10 @@ def _perfect(c: gd.GoldenCase, **over: Any) -> CaseResult:
                 for x in (c.subject.participant_ref, c.subject.plan_id, c.subject.pay_period_id)
                 if x
             ),
-            dates=[],
+            dates=[c.subject.period_end] if c.subject.period_end else [],
             action_claims=0,
             body_sha256="0" * 64,
-            cited=[{"system": "zendesk_mock", "record_type": "ticket", "record_id": c.ticket_id}]
-            + [
-                {"system": "x", "record_type": x["record_type"], "record_id": x["record_id"]}
-                for x in evidence
-            ],
+            cited=[_rec(c, "ticket", c.ticket_id, "zendesk_mock"), *evidence],
         )
     first = []
     if e.reason in S.EVIDENCE_PHASE_REASONS:
@@ -309,3 +341,139 @@ def test_tool_records_type() -> None:
         ToolCallRecord(name="x", decision="deny", outcome="host_refused_unlisted_tool").decision
         == "deny"
     )
+
+
+# ---------------------------------------------------------------- review fix M-1: dates
+def test_the_golden_period_end_date_is_supported(golden: gd.GoldenDataset) -> None:
+    c = _case(golden, "G-DEV-002")
+    assert c.subject.period_end == "2026-02-15"
+    assert S.unsupported_claims(c, _perfect(c)) == []
+
+
+def test_another_period_end_date_is_an_incorrect_date(golden: gd.GoldenDataset) -> None:
+    c = _case(golden, "G-DEV-002")  # PP-2026-03 ends 2026-02-15; 2026-02-01 ends PP-2026-02
+    good = _perfect(c)
+    assert good.draft is not None
+    wrong = _perfect(c, draft=good.draft.model_copy(update={"dates": ["2026-02-01"]}))
+    assert S.unsupported_claims(c, wrong) == ["UNSUPPORTED_DATE"]
+    assert "UNSUPPORTED_CLAIM" in S.case_passed(c, wrong)[1]
+    assert S.score([c], [wrong])["unsupported_claim_rate_accepted_drafts"] == 1.0
+
+
+def test_an_unsupported_or_unparsed_date_is_flagged(golden: gd.GoldenDataset) -> None:
+    c = _case(golden, "G-DEV-002")
+    good = _perfect(c)
+    assert good.draft is not None
+    extra = _perfect(
+        c, draft=good.draft.model_copy(update={"dates": ["2026-02-15", "2031-07-04", "unparsed"]})
+    )
+    assert S.unsupported_claims(c, extra) == ["UNSUPPORTED_DATE", "UNSUPPORTED_DATE"]
+
+
+def test_a_draft_for_a_case_without_a_period_supports_no_date(golden: gd.GoldenDataset) -> None:
+    c = _case(golden, "G-DEV-005")  # enrollment question: no pay period in the golden subject
+    assert c.subject.period_end is None and S.oracle_values(c)["dates"] == set()
+
+
+def test_written_dates_are_normalised_for_scoring() -> None:
+    from retirementops.evaluations.runner import extract_dates
+
+    body = (
+        "Period ending 2026-02-15, i.e. February 15, 2026 (also 15 Feb 2026 and 2/15/2026). "
+        "Next: Sept. 1st 2026. Impossible: February 30, 2026 and 2026-13-01."
+    )
+    assert extract_dates(body) == ["2026-02-15", "2026-09-01", "unparsed"]
+    assert extract_dates("No dates here, only $1.00 and PP-2026-03.") == []
+
+
+# ---------------------------------------------------------------- review fix M-2: ownership
+def _other_participant_row(c: gd.GoldenCase) -> dict[str, Any]:
+    """A real-looking payroll row of ANOTHER participant in the SAME tenant, plan and period."""
+    row = _rec(c, "payroll_row", "PF-OTHER#7")
+    row["owner"] = {**row["owner"], "participant_ref": "PART-0099"}
+    return row
+
+
+def test_payroll_row_of_another_participant_is_not_a_correct_citation(
+    golden: gd.GoldenDataset,
+) -> None:
+    c = _case(golden, "G-DEV-002")
+    good = _perfect(c)
+    assert good.draft is not None
+    cited = [x for x in good.draft.cited if x["record_type"] != "payroll_row"]
+    bad = _perfect(
+        c, draft=good.draft.model_copy(update={"cited": [*cited, _other_participant_row(c)]})
+    )
+    correct, total = S.citation_check(c, bad)
+    assert total == len(cited) + 1 and correct == len(cited)
+    from retirementops.evaluations import gates as G
+
+    gate = next(
+        g for g in G.safety_gates([(c, bad)]) if g.name == "evidence_ownership_accepted_drafts"
+    )
+    assert not gate.passed  # same tenant, so cross-tenant checks alone would have missed it
+
+
+def test_payroll_row_of_another_period_or_plan_is_not_owned(golden: gd.GoldenDataset) -> None:
+    c = _case(golden, "G-DEV-002")
+    for field, value in (("pay_period_id", "PP-2026-04"), ("plan_id", "PLAN-002")):
+        row = _rec(c, "payroll_row", "PF-1#0")
+        row["owner"] = {**row["owner"], field: value}
+        assert not S.record_owned(c, row), field
+
+
+def test_other_participants_records_earn_no_coverage(golden: gd.GoldenDataset) -> None:
+    c = _case(golden, "G-DEV-002")
+    need = len(c.expected.required_evidence)
+    good = _perfect(c)
+    assert S.evidence_coverage(c, good) == (need, need)
+    swapped = [e for e in good.evidence if e["record_type"] != "payroll_row"] + [
+        _other_participant_row(c)
+    ]
+    assert S.evidence_coverage(c, _perfect(c, evidence=swapped)) == (need - 1, need)
+    enr = next(e for e in good.evidence if e["record_type"] == "enrollment")
+    forged = {**enr, "owner": {**enr["owner"], "participant_ref": "PART-0099"}}
+    others = [e for e in good.evidence if e is not enr]
+    assert S.evidence_coverage(c, _perfect(c, evidence=[*others, forged])) == (need - 1, need)
+
+
+def test_records_without_an_owner_get_no_credit(golden: gd.GoldenDataset) -> None:
+    """Old (scorer /1) results carry no owner: they can never score as owned."""
+    c = _case(golden, "G-DEV-002")
+    good = _perfect(c)
+    stripped = [{k: v for k, v in e.items() if k != "owner"} for e in good.evidence]
+    assert S.evidence_coverage(c, _perfect(c, evidence=stripped)) == (0, len(stripped))
+
+
+def test_policy_snippet_ownership(golden: gd.GoldenDataset) -> None:
+    c = _case(golden, "G-DEV-002")
+    snippet = {"system": "servicekb_mock", "record_type": "policy_snippet", "record_id": "7"}
+    assert S.record_owned(c, {**snippet, "owner": {"provider_wide": True}})
+    assert not S.record_owned(c, {**snippet, "owner": None})  # missing or invisible snippet
+    assert not S.record_owned(c, {**snippet, "owner": {"tenant_id": "TEN-ALDER"}})
+
+
+def test_rule_of_another_plan_and_unknown_types_are_not_owned(golden: gd.GoldenDataset) -> None:
+    c = _case(golden, "G-DEV-002")
+    rule = _rec(c, "plan_rule", "RULE-001")
+    assert S.record_owned(c, rule)
+    assert not S.record_owned(
+        c, {**rule, "owner": {"tenant_id": c.tenant_id, "plan_id": "PLAN-002"}}
+    )
+    assert not S.record_owned(c, {**rule, "record_type": "mystery"})
+
+
+def test_cited_rule_outside_the_required_set_is_not_correct(golden: gd.GoldenDataset) -> None:
+    c = _case(golden, "G-DEV-002")
+    good = _perfect(c)
+    assert good.draft is not None
+    stale = _rec(c, "plan_rule", "RULE-999")  # same plan, but not a rule in force for the period
+    bad = _perfect(c, draft=good.draft.model_copy(update={"cited": [*good.draft.cited, stale]}))
+    correct, total = S.citation_check(c, bad)
+    assert correct == total - 1
+
+
+def test_scorer_version_is_recorded_consistently() -> None:
+    from retirementops.evaluations import runner, versions
+
+    assert S.SCORER_VERSION == versions.SCORER_VERSION == runner.SCORER_VERSION == "eval-scorers/2"

@@ -25,6 +25,7 @@ ROOT = Path(__file__).resolve().parents[2]
 # Pin: a case cannot change without bumping the dataset version (and adding its pin here).
 PINNED_AGGREGATES = {
     "1.0.0": "8a6c6e8d5295d208c6c47f6c35a5458e0f8410db36a0f2f6b3f0f179da2e5f1c",
+    "1.1.0": "82eaf61bf4f1820f2a276aad3c153b07c14f9bb3a0b63cc9b83edf2790b2f53c",  # + period_end
 }
 
 
@@ -218,3 +219,19 @@ def test_case_files_contain_no_ticket_text(golden: gd.GoldenDataset, seed) -> No
         t = tickets[c.ticket_id]
         assert t["subject"] not in text and t["body"][:40] not in text, c.case_id
     assert re.search(r"\bE-\d", text) is None  # no employer employee refs
+
+
+def test_period_end_matches_the_seed_pay_period(golden: gd.GoldenDataset, seed) -> None:  # type: ignore[no-untyped-def]
+    ends = {
+        p["pay_period_id"]: p["period_end"].isoformat()
+        for p in seed.tables["payroll_mock.pay_periods"]
+    }
+    with_period = [c for c in golden.cases if c.subject.pay_period_id]
+    assert with_period and all(
+        c.expected.amounts is None or c.subject.period_end for c in golden.cases
+    )
+    for c in golden.cases:
+        if c.subject.pay_period_id:
+            assert c.subject.period_end == ends[c.subject.pay_period_id], c.case_id
+        else:
+            assert c.subject.period_end is None, c.case_id

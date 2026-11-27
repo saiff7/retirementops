@@ -168,6 +168,24 @@ rebuilt only by the test suite as always, `retirementops_eval` rebuilt by each e
 New known items: OPEN-13 (conflicting rules not returned as evidence), ACC-15 (accepted snapshot
 blind spot), OPEN-11/12 (from the Stage 0 review).
 
+## Final-review follow-up (2026-11-27, committed after owner review; not pushed)
+
+- **M-3, recorded as it happened:** the overnight instruction said not to modify
+  `retirementops_test`, but every `pytest` run during the overnight session rebuilt it (the suite's
+  own fixture, `tests/conftest.py`, bootstraps it with `drop_existing=True`). Its database OID
+  changed from 193283 to 254440. Nothing else touched it. Since the owner's instruction of
+  2026-11-27 it has **not** been touched again: the full suite was not run, only database-free
+  unit tests and evaluation tests whose fixtures use `retirementops_eval` alone (checked with
+  `pytest --setup-plan`); OIDs before and after: dev 23849, test 254440, unchanged.
+- **M-1 and M-2 fixed in the evaluation scorer** (scorer `eval-scorers/2`, golden dataset 1.1.0):
+  draft dates are scored against the golden period-end date, and evidence and citations count
+  only when the record itself belongs to the case's ticket, participant, plan and pay period.
+  Server-side financial and safety enforcement is unchanged.
+- **Previous results are not comparable:** the committed reports and baselines were scored with
+  `eval-scorers/1` on dataset 1.0.0; they are kept unchanged as history, and every new report says
+  its baseline is not comparable. To get scorer-2 numbers, rerun the safety tier and the four
+  quality runs, then re-baseline deliberately with `--set-baseline`.
+
 ## Decisions awaiting approval
 
 1. Whether and when to push `main` to GitHub. No push has been verified; pushing would let CI run

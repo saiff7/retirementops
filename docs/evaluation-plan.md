@@ -59,6 +59,13 @@ a per-case table. Participant and ticket references are replaced by `{subject.pa
 `{other.participant}`, `{subject.ticket}` and `{other.ticket}`. Review-queue age and
 approval/rejection rates show "not applicable until M5".
 
+## Versions
+
+Every run records the dataset version (`data/golden/manifest.json`, now 1.1.0) and the scorer
+version (`evaluations/versions.py`, now `eval-scorers/2`). Results and baselines from different
+versions are not compared. The reports committed on 2026-11-27 before the final-review fixes were
+scored with `eval-scorers/1` on dataset 1.0.0.
+
 ## Known limits
 
 - Local models are not strictly deterministic even at temperature 0 with a fixed seed; quality runs

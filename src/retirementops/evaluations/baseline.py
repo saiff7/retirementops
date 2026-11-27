@@ -77,6 +77,8 @@ def snapshot(summary: dict[str, Any]) -> dict[str, Any]:
         "split": summary["metadata"]["split"],
         "model": summary["metadata"]["model"],
         "dataset_version": summary["metadata"]["dataset_version"],
+        # Missing in baselines recorded before the scorer was versioned (= eval-scorers/1).
+        "scorer_version": summary["metadata"].get("scorer_version", "eval-scorers/1"),
         "scores": {
             k: v
             for k, v in scores.items()
@@ -91,6 +93,23 @@ def compare(summary: dict[str, Any], baseline: dict[str, Any] | None) -> dict[st
     if baseline is None:
         return {"baseline_run_id": None, "regressions": []}
     now = snapshot(summary)
+    then_scorer = baseline.get("scorer_version", "eval-scorers/1")
+    if (
+        then_scorer != now["scorer_version"]
+        or baseline.get("dataset_version") != now["dataset_version"]
+    ):
+        # Different scoring rules or cases: a comparison would be meaningless, so none is made.
+        # The baseline file is left untouched; re-baselining is a deliberate, reviewed step.
+        return {
+            "baseline_run_id": baseline["baseline_run_id"],
+            "baseline_dataset_version": baseline.get("dataset_version"),
+            "comparable": False,
+            "reason": (
+                f"baseline scored with {then_scorer} on dataset {baseline.get('dataset_version')}; "
+                f"this run uses {now['scorer_version']} on dataset {now['dataset_version']}"
+            ),
+            "regressions": [],
+        }
     regressions: list[dict[str, Any]] = []
     for key in HIGHER_IS_BETTER:
         b, c = baseline["scores"].get(key), now["scores"].get(key)
@@ -117,6 +136,7 @@ def compare(summary: dict[str, Any], baseline: dict[str, Any] | None) -> dict[st
     return {
         "baseline_run_id": baseline["baseline_run_id"],
         "baseline_dataset_version": baseline.get("dataset_version"),
+        "comparable": True,
         "regressions": regressions,
     }
 

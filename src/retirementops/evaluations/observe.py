@@ -165,30 +165,61 @@ class Observer:
         return rb
 
     def record_tenant(self, system: str, record_type: str, record_id: str) -> str | None:
-        """Which seeded tenant owns a cited or retrieved record (None if not visible)."""
-        lookups = {
-            ("planadmin", "plan"): ("planadmin_mock.plans", "plan_id"),
-            ("planadmin", "plan_rule"): ("planadmin_mock.plan_rules", "rule_id"),
-            ("planadmin", "enrollment"): ("planadmin_mock.enrollments", "enrollment_id"),
-            ("planadmin", "participant"): ("planadmin_mock.participants", "participant_ref"),
-            ("zendesk", "ticket"): ("zendesk_mock.tickets", "ticket_id"),
+        """Which seeded tenant owns a cited or retrieved record (None if not tenant-owned)."""
+        owner = self.record_owner(system, record_type, record_id)
+        return None if owner is None else owner.get("tenant_id")
+
+    def record_owner(self, system: str, record_type: str, record_id: str) -> dict[str, Any] | None:
+        """Who and what a record belongs to, read from the record itself (review M-2).
+
+        Returns the owning tenant, participant, plan and pay period where the record has them,
+        `{"provider_wide": True}` for a policy snippet that exists, `{"pay_period_id": ...}` for a
+        pay period, or None when the record does not exist or is not visible."""
+        kind = (system.split("_")[0], record_type)
+        queries = {
+            ("planadmin", "plan"): (
+                "SELECT tenant_id, plan_id FROM planadmin_mock.plans WHERE plan_id = :i"
+            ),
+            ("planadmin", "plan_rule"): (
+                "SELECT tenant_id, plan_id FROM planadmin_mock.plan_rules WHERE rule_id = :i"
+            ),
+            ("planadmin", "enrollment"): (
+                "SELECT tenant_id, participant_ref, plan_id FROM planadmin_mock.enrollments "
+                "WHERE enrollment_id = :i"
+            ),
+            ("planadmin", "participant"): (
+                "SELECT tenant_id, participant_ref FROM planadmin_mock.participants "
+                "WHERE participant_ref = :i"
+            ),
+            ("zendesk", "ticket"): (
+                "SELECT tenant_id, ticket_id FROM zendesk_mock.tickets WHERE ticket_id = :i"
+            ),
+            ("payroll", "pay_period"): (
+                "SELECT pay_period_id FROM payroll_mock.pay_periods WHERE pay_period_id = :i"
+            ),
+            ("servicekb", "policy_snippet"): (
+                "SELECT true AS provider_wide FROM servicekb_mock.policy_snippets "
+                "WHERE snippet_id::text = :i"
+            ),
         }
-        if record_type == "payroll_row" and "#" in record_id:
-            file_id, row_id = record_id.split("#", 1)
-            with self._tx(self._tenants) as c:
-                return c.execute(
-                    text(
-                        "SELECT tenant_id FROM payroll_mock.payroll_rows WHERE file_id = :f "
-                        "AND row_id::text = :r"
-                    ),
-                    {"f": file_id, "r": row_id},
-                ).scalar()
-        key = (system.split("_")[0], record_type)
-        if key not in lookups:
-            return None  # pay periods and policy snippets are not tenant-owned
-        table, column = lookups[key]  # from the fixed mapping above; the record ID is bound
         with self._tx(self._tenants) as c:
-            return c.execute(
-                text(f"SELECT tenant_id FROM {table} WHERE {column} = :i"),  # noqa: S608
-                {"i": record_id},
-            ).scalar()
+            if kind == ("payroll", "payroll_row"):
+                if "#" not in record_id:
+                    return None
+                file_id, row_id = record_id.split("#", 1)
+                row = (
+                    c.execute(
+                        text(
+                            "SELECT tenant_id, participant_ref, plan_id, pay_period_id "
+                            "FROM payroll_mock.payroll_rows WHERE file_id = :f AND row_id::text = :r"
+                        ),
+                        {"f": file_id, "r": row_id},
+                    )
+                    .mappings()
+                    .first()
+                )
+            elif kind in queries:
+                row = c.execute(text(queries[kind]), {"i": record_id}).mappings().first()
+            else:
+                return None
+        return None if row is None else dict(row)

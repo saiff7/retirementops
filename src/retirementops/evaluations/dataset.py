@@ -79,6 +79,9 @@ class Subject(_Strict):
     participant_ref: str | None = Field(default=None, pattern=r"^PART-\d{4}$")
     plan_id: str | None = Field(default=None, pattern=r"^PLAN-\d{3}$")
     pay_period_id: str | None = Field(default=None, pattern=r"^PP-\d{4}-\d{2}$")
+    # Dataset 1.1.0 (review M-1): the pay period's end date, the only date the host gives the
+    # model as a fact, so the only date an accepted draft may state.
+    period_end: str | None = Field(default=None, pattern=r"^\d{4}-\d{2}-\d{2}$")
 
 
 class Expected(_Strict):

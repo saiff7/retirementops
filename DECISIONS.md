@@ -255,6 +255,20 @@ approved decision; the ones that go beyond the ADR are marked *addition*.
   (`scripts/demo_deliberate_break.py`) instead of a committed broken branch, so no broken code is
   ever committed; pushing a branch with the same patch would show CI failing on GitHub.
 
+## Final-review fixes (2026-11-27, committed after owner review)
+
+- **Scorer versioning:** `evaluations/versions.py` holds `SCORER_VERSION` (now `eval-scorers/2`),
+  recorded in every run's metadata. A baseline is compared only when its scorer and dataset
+  versions match the run's; otherwise the report says "not comparable" and computes no
+  regressions. Existing baselines are not regenerated or overwritten.
+- **M-1:** golden dataset 1.1.0 adds the pay period's end date to each case subject. It is the only
+  date the host gives the model, so it is the only date an accepted draft may state. Written dates
+  are normalised before scoring, independently of the draft validator.
+- **M-2:** ownership is read from each record (`Observer.record_owner`), never inferred from its
+  type. A payroll row must belong to the case's participant, plan and pay period; an enrollment to
+  its participant and plan; a rule to its plan (and be a required rule when cited); a policy
+  snippet must exist as provider-wide knowledge. Records without ownership data earn no credit.
+
 ## Awaiting approval
 
 - Reviewing the M4 implementation (Stages 1–8, committed locally 2026-11-27), including the

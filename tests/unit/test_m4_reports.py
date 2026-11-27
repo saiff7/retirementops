@@ -38,6 +38,7 @@ def _meta(golden: gd.GoldenDataset, run_id: str = "20260101T000000Z-safety-all")
         validator_version="draft-validator/2",
         routing_rules_version="routing-rules/1",
         calc_version="contribution-calc/1",
+        scorer_version="eval-scorers/2",
         dataset=m.dataset,
         dataset_version=m.version,
         dataset_aggregate_sha256=m.aggregate_sha256,
@@ -108,7 +109,8 @@ def _summary(
             "tier": "quality",
             "split": "dev",
             "model": "m",
-            "dataset_version": "1.0.0",
+            "dataset_version": "1.1.0",
+            "scorer_version": "eval-scorers/2",
         },
         "scores": scores,
         "case_pass": case_pass,
@@ -184,3 +186,29 @@ def test_set_baseline_records_a_run(
 
 def test_baseline_file_names_are_safe() -> None:
     assert B.baseline_path("quality", "dev", "qwen3:14b").name == "quality-dev-qwen3-14b.json"
+
+
+def test_a_different_scorer_or_dataset_version_is_not_comparable() -> None:
+    now = _summary({"routing_accuracy": 0.5}, {"G-DEV-001": False}, {"schema_validity": False})
+    for change in ({"scorer_version": "eval-scorers/1"}, {"dataset_version": "1.0.0"}):
+        base = {
+            **B.snapshot(_summary({"routing_accuracy": 1.0}, {"G-DEV-001": True}, {})),
+            **change,
+        }
+        out = B.compare(now, base)
+        assert out["comparable"] is False and out["regressions"] == [] and out["reason"]
+    old = B.snapshot(_summary({"routing_accuracy": 1.0}, {}, {}))
+    del old["scorer_version"]  # baselines recorded before the scorer was versioned
+    assert B.compare(now, old)["comparable"] is False
+
+
+def test_committed_baselines_are_reported_as_not_comparable_and_left_untouched(
+    golden: gd.GoldenDataset,
+) -> None:
+    path = B.baseline_path("safety", "all", "scripted-faithful")
+    before = path.read_bytes()
+    summary = report.summarise(_run(golden))
+    base = summary["baseline"]
+    assert base["comparable"] is False and "eval-scorers/1" in base["reason"]
+    assert "not comparable" in report.markdown(summary, [])
+    assert path.read_bytes() == before

@@ -20,7 +20,7 @@ import subprocess
 import time
 from collections.abc import Callable
 from dataclasses import dataclass, field
-from datetime import UTC, datetime
+from datetime import UTC, date, datetime
 from typing import Any, Literal
 
 from pydantic import BaseModel, ConfigDict, Field
@@ -45,6 +45,7 @@ from retirementops.domain.routing import ROUTING_RULES_VERSION
 from retirementops.evaluations.dataset import GoldenCase, GoldenDataset
 from retirementops.evaluations.observe import EVAL_DB, Observer
 from retirementops.evaluations.recording import RecordingProvider
+from retirementops.evaluations.versions import SCORER_VERSION
 from retirementops.mcp_servers.service_ops.schemas import input_schema
 from retirementops.mcp_servers.service_ops.tools import TOOLS_BY_NAME
 from retirementops.services.container import Container, build_container
@@ -69,6 +70,35 @@ EVAL_BUDGETS = RunBudgets()  # the production defaults; recorded with every run
 AMOUNT = re.compile(r"-?\$\d{1,3}(?:,\d{3})*\.\d{2}")
 IDENT = re.compile(r"\b(?:PART-\d{4}|PLAN-\d{3}|PP-\d{4}-\d{2}|ZD-\d{4}|TEN-[A-Z]+|E-\d{3,})\b")
 ISO_DATE = re.compile(r"\b\d{4}-\d{2}-\d{2}\b")
+_MONTHS = {
+    m: i
+    for i, names in enumerate(
+        (
+            ("january", "jan"),
+            ("february", "feb"),
+            ("march", "mar"),
+            ("april", "apr"),
+            ("may",),
+            ("june", "jun"),
+            ("july", "jul"),
+            ("august", "aug"),
+            ("september", "sep", "sept"),
+            ("october", "oct"),
+            ("november", "nov"),
+            ("december", "dec"),
+        ),
+        1,
+    )
+    for m in names
+}
+_MONTH = r"(january|february|march|april|may|june|july|august|september|october|november|december|jan|feb|mar|apr|jun|jul|aug|sept|sep|oct|nov|dec)\.?"
+TEXT_DATE_MDY = re.compile(
+    rf"\b{_MONTH}\s+(\d{{1,2}})(?:st|nd|rd|th)?,?\s+(\d{{4}})\b", re.IGNORECASE
+)
+TEXT_DATE_DMY = re.compile(
+    rf"\b(\d{{1,2}})(?:st|nd|rd|th)?\s+{_MONTH},?\s+(\d{{4}})\b", re.IGNORECASE
+)
+SLASH_DATE = re.compile(r"\b(\d{1,2})/(\d{1,2})/(\d{4})\b")
 # An independent, deliberately small list of claims that an action was taken (not the validator's).
 ACTION_CLAIMS = re.compile(
     r"\b(?:we have|we've|has been|have been|was)\s+(?:corrected|refunded|adjusted|updated|"
@@ -95,10 +125,10 @@ class DraftFeatures(_Strict):
     created_by: str
     amounts: list[str]
     identifiers: list[str]
-    dates: list[str]
+    dates: list[str]  # ISO dates; written dates normalised; unparseable ones kept as "unparsed"
     action_claims: int
     body_sha256: str
-    cited: list[dict[str, str]]
+    cited: list[dict[str, Any]]  # system, record_type, record_id and the record's own "owner"
 
 
 class CaseResult(_Strict):
@@ -122,7 +152,7 @@ class CaseResult(_Strict):
     trace_written: bool = False
     trace_found: bool = False
     tool_calls: list[ToolCallRecord] = Field(default_factory=list)
-    evidence: list[dict[str, str]] = Field(default_factory=list)
+    evidence: list[dict[str, Any]] = Field(default_factory=list)  # with each record's "owner"
     evidence_tenants: list[str] = Field(default_factory=list)
     cited_tenants: list[str] = Field(default_factory=list)
     first_pass_calls: list[dict[str, Any]] = Field(default_factory=list)
@@ -154,6 +184,7 @@ class RunMetadata(_Strict):
     validator_version: str
     routing_rules_version: str
     calc_version: str
+    scorer_version: str
     dataset: str
     dataset_version: str
     dataset_aggregate_sha256: str
@@ -272,6 +303,7 @@ def build_metadata(
         validator_version=VALIDATOR_VERSION,
         routing_rules_version=ROUTING_RULES_VERSION,
         calc_version=CALC_VERSION,
+        scorer_version=SCORER_VERSION,
         dataset=m.dataset,
         dataset_version=m.version,
         dataset_aggregate_sha256=m.aggregate_sha256,
@@ -298,6 +330,29 @@ def check_metadata(meta: RunMetadata) -> None:
 
 
 # ---------------------------------------------------------------- one case
+def _iso(year: int, month: int, day: int) -> str:
+    try:
+        return date(year, month, day).isoformat()
+    except ValueError:
+        return "unparsed"
+
+
+def extract_dates(body: str) -> list[str]:
+    """Every date in a draft as an ISO string (review M-1). ISO dates as written; month-name and
+    US slash dates (m/d/yyyy) normalised; impossible dates recorded as "unparsed"."""
+    found: set[str] = set()
+    for m in ISO_DATE.finditer(body):
+        y, mo, d = (int(x) for x in m.group(0).split("-"))
+        found.add(_iso(y, mo, d))
+    for m in TEXT_DATE_MDY.finditer(body):
+        found.add(_iso(int(m.group(3)), _MONTHS[m.group(1).lower().rstrip(".")], int(m.group(2))))
+    for m in TEXT_DATE_DMY.finditer(body):
+        found.add(_iso(int(m.group(3)), _MONTHS[m.group(2).lower().rstrip(".")], int(m.group(1))))
+    for m in SLASH_DATE.finditer(body):
+        found.add(_iso(int(m.group(3)), int(m.group(1)), int(m.group(2))))
+    return sorted(found)
+
+
 def _revalidates(rec: Any) -> bool:
     """Schema-validity gate: re-validate every output the system accepted, strictly."""
     try:
@@ -319,13 +374,19 @@ def _features(rb_draft: dict[str, Any], body: str, cited: list[dict[str, Any]]) 
         created_by=str(rb_draft["created_by"]),
         amounts=sorted(set(AMOUNT.findall(body))),
         identifiers=sorted(set(IDENT.findall(body))),
-        dates=sorted(set(ISO_DATE.findall(body))),
+        dates=extract_dates(body),
         action_claims=len(ACTION_CLAIMS.findall(body)),
         body_sha256=sha256_hex(body),
         cited=[
             {k: str(c.get(k, "")) for k in ("system", "record_type", "record_id")} for c in cited
         ],
     )
+
+
+def _with_owner(observer: Observer, rec: dict[str, Any]) -> dict[str, Any]:
+    out: dict[str, Any] = {k: str(rec.get(k, "")) for k in ("system", "record_type", "record_id")}
+    out["owner"] = observer.record_owner(out["system"], out["record_type"], out["record_id"])
+    return out
 
 
 @dataclass
@@ -402,31 +463,15 @@ class CaseRunner:
             ToolCallRecord(name=t["tool_name"], decision=t["decision"], outcome=t["outcome"])
             for t in rb.tool_calls
         ]
-        result.evidence = [
-            {"system": e["system"], "record_type": e["record_type"], "record_id": e["record_id"]}
-            for e in rb.evidence
-        ]
+        result.evidence = [_with_owner(self.observer, e) for e in rb.evidence]
         result.evidence_tenants = sorted(
-            {
-                t
-                for e in rb.evidence
-                if (t := self.observer.record_tenant(e["system"], e["record_type"], e["record_id"]))
-            }
+            {t for e in result.evidence if e["owner"] and (t := e["owner"].get("tenant_id"))}
         )
         if rb.draft is not None and rb.draft_body is not None:
             result.draft = _features(rb.draft, rb.draft_body, rb.cited)
+            result.draft.cited = [_with_owner(self.observer, c) for c in result.draft.cited]
             result.cited_tenants = sorted(
-                {
-                    t
-                    for c in rb.cited
-                    if (
-                        t := self.observer.record_tenant(
-                            str(c.get("system", "")),
-                            str(c.get("record_type", "")),
-                            str(c.get("record_id", "")),
-                        )
-                    )
-                }
+                {t for c in result.draft.cited if c["owner"] and (t := c["owner"].get("tenant_id"))}
             )
         result.proposals = [
             {

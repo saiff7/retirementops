@@ -91,6 +91,18 @@ CI has **no verified run** on GitHub: no push has been verified and no CI result
 | Dev database | Still at **0005**, not upgraded (owner instruction). `scripts/db_upgrade.py` would bootstrap the new role and apply 0006–0007 |
 | Local `.env` | `scripts/dev_bootstrap.py` appended `RO_PW_SVC_AGENT_RECORDER` (git-ignored; no other value changed) |
 
+## Final-review fixes (2026-11-27, committed after owner review)
+
+| Fix | What changed | Evidence (commands actually run) |
+|---|---|---|
+| M-1 date factuality | Golden dataset **1.1.0** adds `subject.period_end` (only that field; every other expectation byte-identical); the runner normalises ISO, month-name and m/d/yyyy dates; the scorer flags `UNSUPPORTED_DATE` for any date other than the case's period end | `tests/unit/test_golden_dataset.py`, `test_m4_scorers.py`, `test_m4_reports.py`: 56 passed |
+| M-2 evidence ownership | The observer reads each cited or retrieved record's own tenant, participant, plan and pay period; citations and coverage count only owned records (payroll rows by participant, plan and period; policy snippets only if the provider-wide snippet exists); scorer **`eval-scorers/2`**, recorded in run metadata | Same unit tests, plus `tests/evals` without the two tests that need the test database: 35 passed, 2 deselected; safety tier (no report written): all gates passed, 104 runs |
+| Baselines | Compared only when scorer and dataset versions match; otherwise reported as "not comparable"; baseline files untouched | Unit test checks the committed baseline file is byte-identical after use |
+
+**Previous M4 results** (committed reports and baselines) were scored with `eval-scorers/1` on
+dataset 1.0.0. They remain valid as history but must be rerun for scorer-2 numbers. The full
+suite was **not** run after these changes (it would rebuild `retirementops_test`).
+
 ## Remaining work
 
 1. **Owner review of M4** (Stages 1–8, committed locally on 2026-11-27): code, initial baselines,

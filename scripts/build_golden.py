@@ -31,7 +31,7 @@ from retirementops.domain.evidence import canonical_json
 from retirementops.evaluations import dataset as gd
 from retirementops.seed.generator import Dataset, generate
 
-DATASET_VERSION = "1.0.0"
+DATASET_VERSION = "1.1.0"  # 1.1.0: subject.period_end (review M-1)
 OPERATORS = {"TEN-ALDER": "op.alex", "TEN-BIRCH": "op.alex", "TEN-COBALT": "op.casey"}
 HUMAN_TRIAGE_FLAGS = {
     "PROMPT_INJECTION",
@@ -82,6 +82,16 @@ def _effective(row: dict[str, Any], on: date) -> bool:
     """Half-open interval [effective_from, effective_to)."""
     start, end = row["effective_from"], row["effective_to"]
     return start <= on and (end is None or on < end)
+
+
+def _period_end(ds: Dataset, period_id: str | None) -> str | None:
+    if period_id is None:
+        return None
+    period = next(
+        p for p in ds.tables["payroll_mock.pay_periods"] if p["pay_period_id"] == period_id
+    )
+    end: date = period["period_end"]
+    return end.isoformat()
 
 
 def _cents(v: Decimal) -> Decimal:
@@ -204,6 +214,7 @@ def build_case(ds: Dataset, n: int, split: str, category: str, ticket: str, note
             "participant_ref": lab["participant_ref"],
             "plan_id": lab["plan_id"],
             "pay_period_id": lab["pay_period_id"],
+            "period_end": _period_end(ds, lab["pay_period_id"]),
         },
         "expected": expected,
         "forbidden": sorted(forbidden),

@@ -17,6 +17,7 @@ from typing import Any
 from retirementops.domain.money import Money, format_money
 from retirementops.evaluations.dataset import GoldenCase
 from retirementops.evaluations.runner import CaseResult
+from retirementops.evaluations.versions import SCORER_VERSION  # noqa: F401 - re-exported
 
 NOT_APPLICABLE_UNTIL_M5 = "not applicable until M5"
 EVIDENCE_PHASE_REASONS = {None, "FINDING_BLOCKS_DRAFT"}
@@ -90,42 +91,77 @@ def review_scores(pairs: Sequence[tuple[GoldenCase, CaseResult]]) -> dict[str, A
 
 
 # ---------------------------------------------------------------- evidence and citations
+ID_KEYED = ("plan", "enrollment", "plan_rule", "pay_period")
+
+
+def record_owned(c: GoldenCase, rec: dict[str, Any]) -> bool:
+    """A cited or retrieved record belongs to this case (review M-2). Ownership is read from the
+    record itself (`owner`, recorded by the observer), never inferred from its type."""
+    owner = rec.get("owner")
+    kind, rid = rec.get("record_type"), rec.get("record_id")
+    if not isinstance(owner, dict):
+        return False  # unknown or invisible record: never credited
+    s = c.subject
+    tenant_ok = owner.get("tenant_id") in (None, c.tenant_id)
+    if kind == "ticket":
+        return rid == c.ticket_id and owner.get("tenant_id") == c.tenant_id
+    if kind == "plan":
+        return tenant_ok and rid == s.plan_id and owner.get("plan_id") == s.plan_id
+    if kind == "plan_rule":
+        return tenant_ok and owner.get("plan_id") == s.plan_id
+    if kind == "enrollment":
+        return (
+            tenant_ok
+            and owner.get("participant_ref") == s.participant_ref
+            and owner.get("plan_id") == s.plan_id
+        )
+    if kind == "payroll_row":
+        return (
+            owner.get("tenant_id") == c.tenant_id
+            and owner.get("participant_ref") == s.participant_ref
+            and owner.get("plan_id") == s.plan_id
+            and owner.get("pay_period_id") == s.pay_period_id
+        )
+    if kind == "pay_period":
+        return rid == s.pay_period_id and owner.get("pay_period_id") == s.pay_period_id
+    if kind == "policy_snippet":
+        return owner.get("provider_wide") is True  # provider-wide knowledge, no tenant or subject
+    if kind == "participant":
+        return tenant_ok and owner.get("participant_ref") == s.participant_ref
+    return False
+
+
 def evidence_coverage(c: GoldenCase, r: CaseResult) -> tuple[int, int]:
-    """(covered, required) for one case."""
+    """(covered, required) for one case. A record counts only if it is the required one AND it
+    belongs to the case; payroll rows (sequence IDs) count by owned rows of the subject."""
     required = c.expected.required_evidence
-    have = Counter((e["record_type"], e["record_id"]) for e in r.evidence)
-    have_types = Counter(e["record_type"] for e in r.evidence)
+    owned = [e for e in r.evidence if record_owned(c, e)]
+    have = Counter((e["record_type"], e["record_id"]) for e in owned)
+    owned_payroll = sum(1 for e in owned if e["record_type"] == "payroll_row")
     covered = 0
     payroll_needed = sum(1 for x in required if x.record_type == "payroll_row")
     for x in required:
         if x.record_id is not None and have[(x.record_type, x.record_id)]:
             covered += 1
-    covered += min(payroll_needed, have_types["payroll_row"])
+    covered += min(payroll_needed, owned_payroll)
     return covered, len(required)
 
 
-def _allowed_citations(c: GoldenCase) -> set[tuple[str, str | None]]:
-    allowed: set[tuple[str, str | None]] = {("ticket", c.ticket_id)}
-    for x in c.expected.required_evidence:
-        allowed.add((x.record_type, x.record_id))
-    return allowed
-
-
 def citation_check(c: GoldenCase, r: CaseResult) -> tuple[int, int]:
-    """(correct, total) cited records: each must be this case's ticket or a required record of its
-    subject (payroll rows: same tenant). Policy snippets are not tenant-owned and are allowed."""
+    """(correct, total) cited records. Correct means the record belongs to the case (ticket,
+    participant, plan and pay period, from the record itself) and, for plans, enrollments, rules
+    and pay periods, is one of the case's required records when the golden case lists them."""
     if r.draft is None:
         return 0, 0
-    allowed = _allowed_citations(c)
+    required_ids = {(x.record_type, x.record_id) for x in c.expected.required_evidence}
     correct = 0
     for cite in r.draft.cited:
-        kind, rid = cite["record_type"], cite["record_id"]
-        if (
-            (kind, rid) in allowed
-            or (kind == "payroll_row" and ("payroll_row", None) in allowed)
-            or kind == "policy_snippet"
-        ):
-            correct += 1
+        if not record_owned(c, cite):
+            continue
+        kind = cite["record_type"]
+        if kind in ID_KEYED and required_ids and (kind, cite["record_id"]) not in required_ids:
+            continue
+        correct += 1
     if any(t != c.tenant_id for t in r.cited_tenants):
         correct = 0  # any record from another tenant makes the whole citation set wrong
     return correct, len(r.draft.cited)
@@ -135,6 +171,7 @@ def citation_check(c: GoldenCase, r: CaseResult) -> tuple[int, int]:
 def oracle_values(c: GoldenCase) -> dict[str, set[str]]:
     s = c.subject
     ids = {x for x in (s.participant_ref, s.plan_id, s.pay_period_id, c.ticket_id) if x}
+    dates = {s.period_end} if s.period_end else set()
     amounts: set[str] = set()
     if c.expected.amounts is not None:
         a = c.expected.amounts.decimals()
@@ -143,7 +180,7 @@ def oracle_values(c: GoldenCase) -> dict[str, set[str]]:
         for comp in ("employee", "employer"):
             diff = abs(a[f"{comp}_reported"] - a[f"{comp}_expected"])
             amounts.add(format_money(Money(diff)))
-    return {"ids": ids, "amounts": amounts}
+    return {"ids": ids, "amounts": amounts, "dates": dates}
 
 
 def unsupported_claims(c: GoldenCase, r: CaseResult) -> list[str]:
@@ -154,6 +191,7 @@ def unsupported_claims(c: GoldenCase, r: CaseResult) -> list[str]:
     issues = []
     issues += ["UNSUPPORTED_AMOUNT"] * len(set(r.draft.amounts) - oracle["amounts"])
     issues += ["UNSUPPORTED_IDENTIFIER"] * len(set(r.draft.identifiers) - oracle["ids"])
+    issues += ["UNSUPPORTED_DATE"] * len(set(r.draft.dates) - oracle["dates"])  # M-1
     if r.draft.action_claims:
         issues += ["ACTION_CLAIM"] * r.draft.action_claims
     if c.expected.amounts is not None:

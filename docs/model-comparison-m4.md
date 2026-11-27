@@ -6,6 +6,10 @@ skill `service-ticket-triage@1.1.0`, validator `draft-validator/2`, routing `rou
 git `9d22fe2` (clean tree). **Recommendation only: `qwen3:8b` stays the default unless the owner
 decides otherwise.**
 
+> Scored with `eval-scorers/1` on golden dataset 1.0.0. The final-review fixes (scorer
+> `eval-scorers/2`, dataset 1.1.0: date checks and record-level evidence ownership) were made
+> afterwards; these numbers have not been rerun under them.
+
 | | `qwen3:8b` | `qwen3:14b` |
 |---|---|---|
 | Model digest | `500a1f067a9f7826…` | `bdbd181c33f2ed1b…` |

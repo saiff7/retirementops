@@ -153,6 +153,7 @@ def markdown(summary: dict[str, Any], rows: list[dict[str, Any]]) -> str:
         "validator_version",
         "routing_rules_version",
         "calc_version",
+        "scorer_version",
         "dataset",
         "dataset_version",
         "dataset_aggregate_sha256",
@@ -233,6 +234,11 @@ def markdown(summary: dict[str, Any], rows: list[dict[str, Any]]) -> str:
     lines += ["", "## Baseline comparison", ""]
     if not base.get("baseline_run_id"):
         lines.append("No baseline recorded for this tier, split and model yet.")
+    elif base.get("comparable") is False:
+        lines.append(
+            f"Baseline `{base['baseline_run_id']}` is **not comparable**: {base['reason']}. "
+            "No regressions are computed; re-baselining is a deliberate, reviewed step."
+        )
     else:
         lines.append(
             f"Baseline: `{base['baseline_run_id']}`. Regressions: **{len(base['regressions'])}**."
@@ -275,4 +281,6 @@ def console_summary(summary: dict[str, Any], out_dir: Path | None) -> dict[str, 
         }
     if summary.get("baseline"):
         out["regressions"] = len(summary["baseline"].get("regressions", []))
+        if summary["baseline"].get("comparable") is False:
+            out["baseline"] = "not comparable (scorer or dataset version changed)"
     return out
