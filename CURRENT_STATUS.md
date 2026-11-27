@@ -93,43 +93,11 @@ CI has **no verified run** on GitHub: no push has been verified and no CI result
 
 ## Remaining work
 
-1. Owner decision on pushing `main` to GitHub, which would let CI run there (OPEN-1); see
-   [HANDOFF.md](HANDOFF.md). Requires the owner's approval.
-2. **M3, in progress** ([plan](docs/implementation-plan.md)). Stages 1–5 committed as `1515ed2`:
-   - stage 1: routing rules engine (`domain/routing.py`) and draft validator (`domain/draft_validator.py`);
-   - stage 2: migration 0006 re-allows `PENDING_REVIEW` only for a validator-passed draft; every
-     draft is validated server-side before insert (`services/draft_validation.py`);
-   - stage 3: run-scoped agent tokens bound to one tenant, ticket, subject set and permitted queue;
-     services enforce the binding and the routing queue on proposals;
-   - run-trace storage: migration 0007 (`app.agent_runs`, `app.tool_calls`, `app.evidence_items`)
-     written only by the new `svc_agent_recorder` role (owner decision), plus `store/traces.py`;
-   - stage 4: business skills `skills/service-ticket-triage/` and `skills/contribution-investigation/`
-     and a strict, content-hashing loader (`agent_runtime/skills.py`);
-   - stage 5: the `ModelProvider` contract, prompt construction, `ScriptedProvider` with the M3
-     adversarial scripts, and a loopback-only `OllamaProvider` (one live call verified locally).
-
-   - stage 6 (committed): the orchestrator (`agent_runtime/orchestrator.py`) with the run state
-     machine, host-side resolution and risk detectors (`services/ticket_resolution.py`,
-     `domain/risk_detectors.py`), host checks on every model-proposed call, budgets, a kill switch,
-     the in-process MCP client, trace writing as `svc_agent_recorder`, audit, and
-     `scripts/run_worker.py`. **Both M3 acceptance criteria pass** (see the results below).
-
-   - stage 7 (committed as `3ab1238`): Claude Code developer skills
-     `.claude/skills/{add-connector,add-mcp-tool,write-eval,security-review}/SKILL.md`. Checked:
-     frontmatter valid, every cited file and symbol exists, every command they give runs
-     (full suite 840 passed, 1 skipped; all checks clean).
-
-   M3 is complete.
-3. **M4, Stage 0 approved and committed (2026-11-27, `3670c4e`):**
-   - the evaluation design, including the scoring-reader design, is in ADR-010 Amendment 1 and
-     ADR-005 Amendment 1, both accepted by the owner;
-   - two security reviews of that design, against the code and the live catalog, were documented;
-     they added OPEN-11, OPEN-12 and ACC-15 to [KNOWN_ISSUES.md](KNOWN_ISSUES.md);
-   - `DECISIONS.md` "M4 decisions" indexes them;
-   - the stage plan is in the M4 section of [docs/implementation-plan.md](docs/implementation-plan.md).
-
-   No M4 code, datasets, tests, migrations or CI changes exist yet. Stage 1 needs the owner's
-   approval.
+1. **Owner review of M4** (Stages 1–8, committed locally on 2026-11-27): code, initial baselines,
+   the three extra blocking gates, and the model comparison (recommendation: keep `qwen3:8b`).
+2. Owner decision on pushing `main` to GitHub so CI can run, including the new blocking safety step
+   (M4 acceptance; OPEN-1). Nothing has been pushed.
+3. Not required by M4: the dev database upgrade 0005 → 0007; M5 (not started).
 
 ## M4 progress (implementation started 2026-11-27, owner-authorised overnight run)
 

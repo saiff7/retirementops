@@ -1,6 +1,6 @@
 # Handoff
 
-_Last updated: 2026-11-27, after the M4 Stage 0 commit `3670c4e`._
+_Last updated: 2026-11-27, after the M4 Stage 8 commit `9aa0c95` (overnight autonomous run, owner-authorised)._
 
 ## Current state in one paragraph
 
@@ -9,14 +9,14 @@ Operations MCP server) went through three independent security reviews, with eve
 or explicitly accepted. The owner approved it, and it was committed as `91f959b`. The
 documentation recording that was committed separately as `f4d3349` and corrected in `3d281b6`.
 GitHub push status is unverified: no push has been verified and no fetch has been performed.
-The owner approved starting M3 on 2026-11-26. **M3 is complete: all seven stages are committed**: stages 1–5 in `1515ed2`, stage 6 in `d7a9a63`, stage 7 (developer skills) in `3ab1238`. The owner approved the M4 architectural decisions on 2026-11-27. Stage 0 (recording them as ADR amendments, documentation only) was approved and committed as `3670c4e`; Stages 1–8 have not started.
+The owner approved starting M3 on 2026-11-26. **M3 is complete: all seven stages are committed**: stages 1–5 in `1515ed2`, stage 6 in `d7a9a63`, stage 7 (developer skills) in `3ab1238`. The owner approved the M4 architectural decisions on 2026-11-27. Stage 0 was approved and committed as `3670c4e`. **M4 Stages 1–8 were implemented, tested and committed locally overnight (2026-11-27) and await the owner's review.** Nothing has been pushed; the new CI step has never run on GitHub.
 
 ## Git
 
 | | |
 |---|---|
 | Branch | `main` (the only branch) |
-| Local commits | Oldest first: `ac9e36b`, `91f959b`, `f4d3349`, `3d281b6`, `b37d9c5`, `1515ed2`, `d7a9a63`, `3ab1238`, `a674e35` ("docs: mark M3 fully complete"), `3670c4e` ("docs: approve M4 evaluation design"), then a follow-up documentation commit recording the approval (run `git log` for the latest) |
+| Local commits | Oldest first: `ac9e36b`, `91f959b`, `f4d3349`, `3d281b6`, `b37d9c5`, `1515ed2`, `d7a9a63`, `3ab1238`, `a674e35` ("docs: mark M3 fully complete"), `3670c4e`, `b469a13` (M4 Stage 0), `db6b6ca` (Stage 1), `c47170f` (Stage 2), `a484171` (Stage 3), `774b6cf` (Stage 4), `9d22fe2` (Stage 5), `9806087` (Stage 6), `b11a4c3` (Stage 7), `9aa0c95` (Stage 8), then the handoff documentation commit (run `git log` for the latest) |
 | M4 Stage 0 commit | `3670c4ec3ed4b348fa1d0c55d8b352b94495911d`, "docs: approve M4 evaluation design" (nine documentation files; no code, tests, configuration, migrations or CI) |
 | M3 stage 7 commit | `3ab1238be20bf4123a3f4ba255b0f11037decca9`, "M3 stage 7: add Claude Code developer skills" (9 files) |
 | M3 stage 6 commit | `d7a9a6342733c9470db0d828ae05c0804ed4ce99`, "M3 stage 6: orchestrator, host resolution and review fixes" (29 files) |
@@ -25,7 +25,7 @@ The owner approved starting M3 on 2026-11-26. **M3 is complete: all seven stages
 | M2 commit | `91f959b2110b8210a10efc3ad7e072c8e9cfae8b`, "M2: add hardened service operations MCP server" (69 files, +6,487 / −128) |
 | M0 + M1 commit | `ac9e36b47feab8b9a58f1c3c82add8cdc6bbf853`, "M0 + M1: design docs and synthetic business backend" |
 | Remote | `origin` = `github.com/saiff7/retirementops`. **Push status unverified:** no push has been verified and no fetch has been performed, so the local repository has no remote-tracking information. Whether GitHub holds any of these commits has not been checked. |
-| Working tree | Clean after the M4 Stage 0 commits (2026-11-27). Run `git status` for the current state. |
+| Working tree | Clean after the M4 commits (2026-11-27). Run `git status` for the current state. |
 
 Never commit `.env`, `keys/` or `.mcp.json` (all git-ignored). `scripts/check_no_secrets.py` must
 pass before any commit.
@@ -148,13 +148,33 @@ They reference `CLAUDE.md` instead of repeating it. Checks run 2026-11-27: front
 every cited file and symbol exists, the commands they give run (full suite 840 passed, 1 skipped;
 ruff, format, mypy, 6 import contracts, secret scan and diff check clean).
 
+## M4 (2026-11-27, overnight run; committed locally, not pushed)
+
+| Stage | Commit | Result |
+|---|---|---|
+| 1 Golden dataset | `db6b6ca` | 30 seed-based cases (20 dev, 10 held-out), manifest with hashes and tenant list |
+| 2 Eval DB and reader | `c47170f` | `retirementops_eval` (name-guarded), `svc_eval_reader` SELECT-only, `Settings.unprivileged()` |
+| 3 Recording, observer, runner | `a484171` | One Orchestrator per case, strict redacted results, full metadata |
+| 4 Scorers | `774b6cf` | All spec §12 metrics; M5-dependent ones N/A |
+| 5 Safety tier and gates | `9d22fe2` | 104 scripted runs, all 11 gates pass; `scripts/run_eval.py` |
+| 6 Quality tier | `9806087` | 8B vs 14B on dev (×3) and held-out (×1); [comparison](docs/model-comparison-m4.md) |
+| 7 Reports and baselines | `b11a4c3` | Reproducible reports, baselines, regression flags |
+| 8 CI and deliberate break | `9aa0c95` | Blocking CI step (local only), deliberate-break demo shows exit 1 |
+
+Final local results (2026-11-27): full suite **963 passed, 1 skipped** (the opt-in live Ollama
+test); ruff, format, mypy, 7 import contracts, golden check and secret scan clean; safety tier all
+gates passed. Databases: dev `retirementops` still at **0005** (never touched), test database
+rebuilt only by the test suite as always, `retirementops_eval` rebuilt by each evaluation run.
+New known items: OPEN-13 (conflicting rules not returned as evidence), ACC-15 (accepted snapshot
+blind spot), OPEN-11/12 (from the Stage 0 review).
+
 ## Decisions awaiting approval
 
 1. Whether and when to push `main` to GitHub. No push has been verified; pushing would let CI run
    there (OPEN-1).
 2. When to upgrade the dev database (0005 → 0007).
-3. Starting M4 Stage 1. Stage 0 was approved and committed on 2026-11-27 (`3670c4e`). History of the
-   Stage 0 text, all on 2026-11-27:
+3. **Reviewing M4** (Stages 1–8, `db6b6ca`…`9aa0c95`): the code, the initial baselines set by the
+   overnight run, and the model comparison. History of the Stage 0 text, all on 2026-11-27:
    - **Scoring-access decision revised** at the owner's request: `ro_owner` is for eval setup only,
      and scoring reads use a separate SELECT-only `svc_eval_reader` (ADR-010 Amendment 1, point 1a).
    - **First security review**, against the code and live catalog:
@@ -170,8 +190,8 @@ ruff, format, mypy, 6 import contracts, secret scan and diff check clean).
      - named the golden manifest's tenant list as the reader's tenant scope;
      - extended the planned CLAUDE.md note to three exceptions;
      - recorded the accepted snapshot blind spot (ACC-15) and the cluster-wide role refresh.
-4. Any change to the default model after the M4 Stage 6 comparison (`qwen3:8b` stays the default
-   until then; ADR-005 Amendment 1).
+4. The default model after the M4 Stage 6 comparison: the recommendation is to keep `qwen3:8b`
+   ([docs/model-comparison-m4.md](docs/model-comparison-m4.md)); ADR-005 Amendment 1.
 5. Extending the credential-separation fix (OPEN-11) beyond the evaluation process (API, MCP
    server, worker): needs separate owner approval.
    (Decided 2026-11-26: run traces use the dedicated `svc_agent_recorder` role. Decided
@@ -197,8 +217,10 @@ uv run ruff check src tests scripts migrations && uv run ruff format --check src
 
 3. Do not commit uncommitted changes, push or fetch without the owner's approval. Do not amend or
    rewrite `ac9e36b`, `91f959b`, `f4d3349` or `3d281b6`.
-4. **M3 is complete. M4 Stage 0 is approved and committed (`3670c4e`).** Do not start Stage 1 until
-   the owner says so.
+4. **M4 is implemented locally and awaits the owner's review.** Exact next action: the owner
+   reviews M4 and decides on pushing `main` so GitHub CI can run the new safety step (M4
+   acceptance, OPEN-1). Demonstrate with `uv run python scripts/run_eval.py --tier safety` and
+   `uv run python scripts/demo_deliberate_break.py`. Do not start M5 without approval.
    When approved, follow the M4 stage table in
    [docs/implementation-plan.md](docs/implementation-plan.md), ADR-010 Amendment 1 and the
    `write-eval` developer skill. Do not widen `app_service` privileges.

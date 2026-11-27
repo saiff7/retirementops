@@ -257,10 +257,11 @@ approved decision; the ones that go beyond the ADR are marked *addition*.
 
 ## Awaiting approval
 
-- Starting M4 Stage 1. Stage 0 is approved and committed (`3670c4e`).
+- Reviewing the M4 implementation (Stages 1–8, committed locally 2026-11-27), including the
+  initial baselines it set and the extra blocking gates it added.
 - Pushing `main` to GitHub (OPEN-1), needed for M4 acceptance (Stage 8).
 - Upgrading the dev database from 0005 to 0007. M4 does not need it.
-- Any change to the default model after the Stage 6 comparison.
+- The default model after the Stage 6 comparison (recommendation: keep `qwen3:8b`).
 - When Stage 2 lands: the CLAUDE.md note covering the three exceptions (the reader's grants outside
   migrations; `ro_owner` and the superuser in `evaluations.provision`; one non-runtime role reading
   all four mock schemas in `retirementops_eval` only). See ADR-010 Amendment 1, point 1a.
