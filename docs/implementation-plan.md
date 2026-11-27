@@ -147,7 +147,7 @@ rules engine. Plus `.claude/skills/add-connector`, `add-mcp-tool`, `write-eval` 
 finding. Scripted adversarial runs (invented amount, cross-tenant call, unlisted tool, malformed JSON,
 timeout) each end in `NEEDS_MANUAL_REVIEW`. No connector write happens during any run.
 
-### M4: Evaluation suite (architectural decisions approved 2026-11-27; Stage 0 text recorded, pending approval; Stages 1–8 not started)
+### M4: Evaluation suite (Stage 0 approved and committed 2026-11-27, `3670c4e`; Stages 1–8 not started)
 **Build:** 30 golden cases split into dev and held-out, covering normal, ambiguous, missing-data,
 conflicting, cross-tenant and injection cases. Also scorers for the spec §12 metrics, a report with full
 version metadata, and a CI workflow running the safety tier.
@@ -155,7 +155,7 @@ version metadata, and a CI workflow running the safety tier.
 **Acceptance:** CI fails when a safety invariant is broken. This is shown by a deliberately broken
 branch or test. A local Ollama report is committed.
 
-**Design (decisions approved 2026-11-27; recorded text pending approval):** [ADR-010 Amendment 1](adr/010-evaluation-and-ci-gates.md) and
+**Approved design (2026-11-27):** [ADR-010 Amendment 1](adr/010-evaluation-and-ci-gates.md) and
 [ADR-005 Amendment 1](adr/005-explicit-orchestrator-and-providers.md); summarised in
 [DECISIONS.md](../DECISIONS.md) "M4 decisions".
 - Runs against `retirementops_eval`, rebuilt from seed 42 for each run.
@@ -167,7 +167,7 @@ branch or test. A local Ollama report is committed.
 
 | Stage | Build | Main files | Done when |
 |---|---|---|---|
-| 0 | Record the approved decisions; amend ADR-010 and ADR-005 (documentation only) | `docs/adr/010…`, `docs/adr/005…`, `DECISIONS.md`, this plan, root documents | The owner has approved the recorded text (pending) |
+| 0 | Record the approved decisions; amend ADR-010 and ADR-005 (documentation only) | `docs/adr/010…`, `docs/adr/005…`, `DECISIONS.md`, this plan, root documents | The owner has approved the recorded text. **Done** 2026-11-27 (`3670c4e`) |
 | 1 | Strict golden case model (`extra="forbid"`): case ID, split, category, seed ticket or inline ticket, frozen expectations, forbidden behaviours. 30 cases (about 20 dev, 10 held-out) across all six categories, plus a manifest with the tenant list; the `evaluations` import contract | `data/golden/{dev,heldout}/cases.jsonl`, `data/golden/manifest.json`, `evaluations/dataset.py`, `pyproject.toml` (import contract) | Tests pass: schema is strict, splits don't overlap, seed-based cases agree with `ticket_labels.jsonl`, manifest hashes verify, the manifest's tenant list matches the seed, every category is covered, a change without a version bump fails; `lint-imports` keeps the new contract |
 | 2 | Provisioning in its own process (setup only). Cluster step as the superuser: roles, fresh database, `PUBLIC` revoked, CONNECT grants, reader read-only default. Database step as `ro_owner`: migrate to head, load seed 42, inline tickets, hash check, reader grants. Also: name guard; evaluation rate-limit configuration; new scoring login `svc_eval_reader` (not a runtime role, SELECT only, `retirementops_eval` only); superuser and owner settings made optional, a run-and-score settings mode that excludes them even when `.env` holds them, and a clear failure in each entry point that needs them (ADR-010 Amendment 1, points 1 and 1a). The API, MCP server and worker are unchanged (OPEN-11) | `evaluations/provision.py`; `config.py` (reader role, `RUNTIME_ROLES` exclusion, optional privileged settings, run-and-score mode); presence checks in `db/bootstrap.py`, `db/migrate.py`, `migrations/env.py`, `scripts/seed.py`, `scripts/db_upgrade.py`, `tests/conftest.py`; `.env.example`; CLAUDE.md (note on the three exceptions) | Tests pass: other names (dev included) are refused; a rebuild is idempotent; a tampered row is caught; dev and test databases are untouched; the build takes under a minute. Reader tests pass: role attributes; connect rights from the catalog (eval yes; test no; dev no where it exists, since CI has none); eval database ACL; exact privilege set including effective function rights; writes, sequences, temporary tables and `CREATE` denied; audit and users denied; RLS holds; not in `RUNTIME_ROLES` and no runtime engine. Settings tests pass: the run-and-score mode holds no privileged secret and cannot build an owner or superuser connection; entry points fail clearly without the secrets; only `evaluations.provision` (outside existing bootstrap, migration, seed and test code) refers to the owner role or superuser |
 | 3 | Recording wrapper; runner with one `Orchestrator` per case and a real operator; trace, draft and proposal readback and mock-system snapshots as `svc_eval_reader`; strict `CaseResult`; full run metadata | `evaluations/{recording,observe,runner}.py`, `scripts/run_eval.py` | A scripted dev run is reproducible apart from timestamps and IDs; incomplete metadata aborts; a missing trace counts as a failure; retried parse failures are counted; provisioning runs in its own process that exits before the first case, and the run-and-score process uses the excluding settings mode; only `evaluations.observe` refers to the reader role |

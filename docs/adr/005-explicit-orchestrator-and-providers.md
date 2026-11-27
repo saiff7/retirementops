@@ -1,8 +1,7 @@
 # ADR-005: Explicit orchestrator; Ollama, Anthropic and Scripted providers
 
-**Status:** Accepted (2026-11-26). Amendment 1 proposed 2026-11-27 (M4 Stage 0), **pending the
-owner's approval**: see [Amendment 1](#amendment-1-2026-11-27-model-choice-moves-to-m4). The
-original decision below is unchanged.
+**Status:** Accepted (2026-11-26). Amended 2026-11-27: [Amendment 1](#amendment-1-2026-11-27-model-choice-moves-to-m4)
+was accepted by the owner (M4 Stage 0). The original decision below is unchanged.
 
 ## Context
 The spec wants a small, explicit orchestrator and a `ModelProvider` protocol with an Ollama default and
@@ -37,12 +36,7 @@ an optional Anthropic adapter. A Claude Code subscription is **not** API access.
 
 ## Amendment 1 (2026-11-27): model choice moves to M4
 
-**Status:** Proposed, **pending the owner's approval of this text.**
-- **Already decided by the owner (2026-11-27):**
-  - `qwen3:8b` stays the default;
-  - `qwen3:8b` and `qwen3:14b` are compared on the dev split;
-  - the held-out split is reserved for the final evaluation.
-- **Not yet approved:** this recorded text.
+**Status:** Accepted by the owner on 2026-11-27 (M4 Stage 0), committed in `3670c4e`.
 
 ### Context
 The decision above says the Ollama model "is chosen in M3 by a small dev-set comparison and

@@ -1,6 +1,6 @@
 # Current status
 
-_Last updated: 2026-11-27 (M3 complete; M4 Stage 0 recorded, uncommitted, pending owner approval; latest commit `a674e35`)._
+_Last updated: 2026-11-27 (M3 complete; M4 Stage 0 approved and committed in `3670c4e`; Stage 1 not started)._
 
 ## Milestones
 
@@ -10,7 +10,7 @@ _Last updated: 2026-11-27 (M3 complete; M4 Stage 0 recorded, uncommitted, pendin
 | M1 Synthetic business backend | Done, approved | `ac9e36b` |
 | M2 Service Operations MCP server | Done: completed, reviewed three times, approved and committed | `91f959b` |
 | M3 First skill and worker | **Complete: all seven stages committed.** Stages 1–5 in `1515ed2`, stage 6 in `d7a9a63`, stage 7 (developer skills) in `3ab1238` | `1515ed2`, `d7a9a63`, `3ab1238` |
-| M4 Evaluation suite | **Architectural decisions approved 2026-11-27. Stage 0 (ADR amendments, documentation only) recorded, uncommitted, pending owner approval of the text.** Stages 1–8 not started | — |
+| M4 Evaluation suite | **Stage 0 (decisions and ADR amendments, documentation only) approved and committed 2026-11-27.** Stages 1–8 not started | `3670c4e` |
 | M5–M8 | Not started | — |
 
 ## Repository state
@@ -31,8 +31,11 @@ _As recorded on 2026-11-26. Run `git log` and `git status` for the current state
   - `1515ed28239ed0d81287acf16a2cb48cb9e47a38`, "M3 stages 1-5: validator, run tokens, trace
     storage, skills, providers" (52 files).
   - `d7a9a6342733c9470db0d828ae05c0804ed4ce99`, "M3 stage 6: orchestrator, host resolution and review fixes" (29 files).
-  - `3ab1238be20bf4123a3f4ba255b0f11037decca9`, "M3 stage 7: add Claude Code developer skills" (9 files). Latest commit on
-    `main` as of 2026-11-27; the working tree was clean after it.
+  - `3ab1238be20bf4123a3f4ba255b0f11037decca9`, "M3 stage 7: add Claude Code developer skills" (9 files).
+  - `a674e351459c3e04391face023d3b5a0ef971b2d`, "docs: mark M3 fully complete".
+  - `3670c4ec3ed4b348fa1d0c55d8b352b94495911d`, "docs: approve M4 evaluation design" (nine
+    documentation files; no code, tests, configuration, migrations or CI). A follow-up
+    documentation commit records the approval in the status wording.
 - **GitHub push status is unverified.** `origin` is configured, but no push has been verified and no
   fetch has been performed, so the local repository has no remote-tracking information about
   GitHub. Whether GitHub holds any of these commits has not been checked.
@@ -117,10 +120,9 @@ CI has **no verified run** on GitHub: no push has been verified and no CI result
      (full suite 840 passed, 1 skipped; all checks clean).
 
    M3 is complete.
-3. **M4, Stage 0 recorded (2026-11-27, uncommitted, pending owner approval):**
-   - the evaluation design is in ADR-010 Amendment 1 and ADR-005 Amendment 1. The owner approved
-     the architectural decisions; the recorded text, including the scoring-reader design, is
-     pending approval;
+3. **M4, Stage 0 approved and committed (2026-11-27, `3670c4e`):**
+   - the evaluation design, including the scoring-reader design, is in ADR-010 Amendment 1 and
+     ADR-005 Amendment 1, both accepted by the owner;
    - two security reviews of that design, against the code and the live catalog, were documented;
      they added OPEN-11, OPEN-12 and ACC-15 to [KNOWN_ISSUES.md](KNOWN_ISSUES.md);
    - `DECISIONS.md` "M4 decisions" indexes them;

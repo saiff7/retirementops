@@ -11,12 +11,12 @@ was decided, why, and what was rejected. Owner decisions are dated.
 | [002](docs/adr/002-single-python-package-layout.md) | One package `src/retirementops/` with import-linter layers | Same boundaries as a multi-package workspace, much less overhead | The spec's `apps/` + `packages/` uv workspace |
 | [003](docs/adr/003-mock-systems-as-schemas.md) | One schema per mock system, one login role per connector, RLS on all tenant tables; 404 for other tenants' objects | Least privilege and isolation that hold even if code forgets a filter | Separate mock HTTP services (heavy); one flat schema and role (no defence in depth) |
 | [004](docs/adr/004-mcp-python-first-cloudflare-gateway-later.md) | Python MCP server first; the Cloudflare Worker later as a thin authenticated gateway | Offline development and testing; transport kept separate from domain logic | Worker-only MCP |
-| [005](docs/adr/005-explicit-orchestrator-and-providers.md) | Explicit orchestrator; Ollama, Anthropic and Scripted providers (M3). *Amendment proposed 2026-11-27, pending approval:* the model comparison moves to M4; `qwen3:8b` stays the default | Readable control flow; safety testable without a live model | An agent framework from day one |
+| [005](docs/adr/005-explicit-orchestrator-and-providers.md) | Explicit orchestrator; Ollama, Anthropic and Scripted providers (M3). *Amended 2026-11-27:* the model comparison moves to M4; `qwen3:8b` stays the default | Readable control flow; safety testable without a live model | An agent framework from day one |
 | [006](docs/adr/006-deterministic-money.md) | `Decimal`, integer cents, `ROUND_HALF_UP` once; rules evaluated on the pay period end date | Exact, auditable arithmetic | Floats; model arithmetic |
 | [007](docs/adr/007-two-phase-approval.md) | Approval bound to version + hash; four-eyes for sensitive drafts; no close capability anywhere | Approval covers exactly what was reviewed and cannot be self-granted | Approval by draft ID only |
 | [008](docs/adr/008-identity-and-tokens.md) | Mock RS256 JWTs locally, OAuth 2.1 at the edge (M6); roles and tenants re-read per request | Server-side authorization without real SSO; revocation takes effect at once | Trusting tenant claims inside tokens |
 | [009](docs/adr/009-audit-hash-chain.md) | Append-only, hash-chained audit: tamper-evident, not immutable | Detects edits; honest about the limit | Claiming immutability |
-| [010](docs/adr/010-evaluation-and-ci-gates.md) | Safety gates in CI with a scripted provider; model quality evaluated separately. *Amendment proposed 2026-11-27, pending approval:* the M4 evaluation framework (database, datasets, entry point, package, scoring, gates, reports) | Safety must not depend on model quality | One combined score |
+| [010](docs/adr/010-evaluation-and-ci-gates.md) | Safety gates in CI with a scripted provider; model quality evaluated separately. *Amended 2026-11-27:* the M4 evaluation framework (database, datasets, entry point, package, scoring, gates, reports) | Safety must not depend on model quality | One combined score |
 | [011](docs/adr/011-async-deferred-to-cloudflare.md) | Synchronous local runs; Queues and Workflows in M6+ | Core workflow complete without cloud | Building async infrastructure first |
 | [012](docs/adr/012-rate-limiting-and-bounded-audit.md) | Per-client and per-principal rate limits, failed-auth block, bounded anonymous audit, pseudonymised audit | An unauthenticated flood cannot fill the audit log; no raw IDs stored | Auditing every request unthrottled |
 | [013](docs/adr/013-mcp-server-implementation.md) | MCP SDK 2.x low-level server with our own validation; drafts and proposals tables in M2 with DB guards; fail-closed draft status; scope-checked evidence; per-user idempotency | The spec needs extra fields rejected; M2 acceptance needs rows; integrity must not depend on code alone | `FastMCP` (ignores extra fields); app-only enforcement |
@@ -36,8 +36,9 @@ was decided, why, and what was rejected. Owner decisions are dated.
 | 2026-11-26 | M3 approved to start |
 | 2026-11-26 | Run traces get a dedicated role `svc_agent_recorder` (INSERT/SELECT on `app.agent_runs`, `app.tool_calls`, `app.evidence_items` only); `app_service` is not widened. Implemented in migration 0007: RLS on all three, trace rows only in their run's own transaction, immutable for every role. Rejected: granting `app_service` (widens the drafts role) |
 | 2026-11-27 | M3 complete (stages 1–7 in `1515ed2`, `d7a9a63`, `3ab1238`) |
-| 2026-11-27 | M4 architectural decisions approved; Stage 0 (recording them) only. Stages 1–8 each need approval before they start. The recorded text ("M4 decisions" below, ADR-010 Amendment 1, ADR-005 Amendment 1) is **pending approval** |
-| 2026-11-27 | `ro_owner` must not be used for scoring; scoring uses a separate, narrowly scoped read-only role (design in ADR-010 Amendment 1, point 1a, pending approval) |
+| 2026-11-27 | M4 architectural decisions approved; Stage 0 (recording them) only. Stages 1–8 each need approval before they start |
+| 2026-11-27 | M4 Stage 0 documentation approved and committed (`3670c4e`): "M4 decisions" below, ADR-010 Amendment 1 and ADR-005 Amendment 1 are accepted |
+| 2026-11-27 | `ro_owner` must not be used for scoring; scoring uses a separate, narrowly scoped read-only role (design in ADR-010 Amendment 1, point 1a) |
 | 2026-11-27 | The snapshot blind spot (writes under a tenant outside the scoring reader's scope) is accepted as a documented risk, with no post-run owner check (ACC-15) |
 | 2026-11-27 | The credential-separation fix (OPEN-11) is limited to the evaluation process; extending it to the API, MCP server or worker needs separate owner approval |
 
@@ -162,11 +163,11 @@ was decided, why, and what was rejected. Owner decisions are dated.
 - **`security-review` keeps the planned name.** Inside this project it provides the
   RetirementOps checklist in place of Claude Code's generic review of the same name.
 
-## M4 decisions (Stage 0, recorded 2026-11-27; pending owner approval)
+## M4 decisions (Stage 0, approved 2026-11-27, committed in `3670c4e`)
 
-Recorded before any M4 code exists. The owner approved the architectural decisions on 2026-11-27;
-this record of them, including the scoring-access design and the security-review corrections, is
-**pending the owner's approval**. The full reasoning is in
+Recorded before any M4 code exists. The owner approved the architectural decisions and then this
+record of them, including the scoring-access design and the security-review corrections, on
+2026-11-27. The full reasoning is in
 [ADR-010 Amendment 1](docs/adr/010-evaluation-and-ci-gates.md) and
 [ADR-005 Amendment 1](docs/adr/005-explicit-orchestrator-and-providers.md).
 
@@ -192,7 +193,7 @@ this record of them, including the scoring-access design and the security-review
 | Reports go in `evals/reports/<run-id>/` (`results.jsonl`, `summary.json`, `report.md`). They hold no ticket or participant text, only case IDs. They are compared with a committed baseline, and regressions are flagged. | Spec §12: compare releases and keep regressions visible; privacy hygiene | Reports with ticket excerpts; no baseline |
 | `qwen3:8b` stays the default. The 8B vs 14B comparison runs in M4 on **dev** with repeats; **held-out** runs once per model for the final evaluation. The owner decides any change. | The M3 comparison was never run; a smoke run is not an evaluation | Switching now; backfilling an M3 result |
 
-### M4 stages (structure approved 2026-11-27; this text pending approval)
+### Approved M4 stages (2026-11-27)
 
 Each stage starts only with the owner's approval and ends with real test output
 (CLAUDE.md ground rule 1). The plan is in [docs/implementation-plan.md](docs/implementation-plan.md).
@@ -211,8 +212,7 @@ Each stage starts only with the owner's approval and ends with real test output
 
 ## Awaiting approval
 
-- Approving and committing the recorded M4 Stage 0 text (uncommitted, 2026-11-27); then starting
-  M4 Stage 1.
+- Starting M4 Stage 1. Stage 0 is approved and committed (`3670c4e`).
 - Pushing `main` to GitHub (OPEN-1), needed for M4 acceptance (Stage 8).
 - Upgrading the dev database from 0005 to 0007. M4 does not need it.
 - Any change to the default model after the Stage 6 comparison.

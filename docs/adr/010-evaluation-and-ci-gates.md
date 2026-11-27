@@ -1,8 +1,8 @@
 # ADR-010: Safety gates in CI use a scripted provider; model-quality evals are run and recorded locally
 
-**Status:** Accepted (2026-11-26). Amendment 1 proposed 2026-11-27 (M4 Stage 0), **pending the
-owner's approval**: see [Amendment 1](#amendment-1-2026-11-27-m4-evaluation-framework). The original
-decision below is unchanged and remains in force; the amendment says which points it would replace.
+**Status:** Accepted (2026-11-26). Amended 2026-11-27: [Amendment 1](#amendment-1-2026-11-27-m4-evaluation-framework)
+was accepted by the owner (M4 Stage 0). The original decision below is unchanged; the amendment
+says which points it replaces.
 
 ## Context
 The spec requires critical safety gates to be enforced in CI. CI runners cannot easily host Ollama, and
@@ -31,15 +31,13 @@ Safety does not depend on which model is plugged in, which is the point of the d
 
 ## Amendment 1 (2026-11-27): M4 evaluation framework
 
-**Status:** Proposed, **pending the owner's approval of this text.** Recorded before any M4 code
-exists.
-- **Already decided by the owner (2026-11-27):**
-  - the M4 architectural decisions this amendment records;
-  - the instruction that `ro_owner` must not be used for scoring;
-  - acceptance of the snapshot blind spot (point 1a);
-  - limiting the credential-separation fix to the evaluation process (point 1).
-- **Not yet approved:** this recorded text, including the scoring-reader design (point 1a) and the
-  security-review corrections.
+**Status:** Accepted by the owner on 2026-11-27 (M4 Stage 0), committed in `3670c4e`. Recorded before any
+M4 code exists. Approval covers:
+- the M4 architectural decisions;
+- the scoring-reader design (point 1a) and the security-review corrections;
+- the owner's decisions that `ro_owner` is never used for scoring, that the snapshot blind spot is
+  accepted (point 1a), and that the credential-separation fix covers the evaluation process only
+  (point 1).
 
 ### Context
 The M4 planning review found five things the original decision leaves open:

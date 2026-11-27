@@ -11,12 +11,12 @@ takes effect when the owner approves it.
 | [002](002-single-python-package-layout.md) | Single Python distribution instead of multiple `packages/` | Accepted |
 | [003](003-mock-systems-as-schemas.md) | Mock systems as separate Postgres schemas behind connectors | Accepted |
 | [004](004-mcp-python-first-cloudflare-gateway-later.md) | Python MCP servers first; Cloudflare Worker as a thin authenticated gateway | Accepted |
-| [005](005-explicit-orchestrator-and-providers.md) | Explicit orchestrator; Ollama, Anthropic and Scripted providers | Accepted; Amendment 1 (model comparison moves to M4) proposed 2026-11-27, pending owner approval |
+| [005](005-explicit-orchestrator-and-providers.md) | Explicit orchestrator; Ollama, Anthropic and Scripted providers | Accepted; Amendment 1 (model comparison moves to M4) accepted 2026-11-27 |
 | [006](006-deterministic-money.md) | Decimal + integer cents + explicit rounding | Accepted |
 | [007](007-two-phase-approval.md) | Two-phase approval bound to version + hash; no close capability | Accepted |
 | [008](008-identity-and-tokens.md) | Mock JWT identity locally; OAuth 2.1 at the Cloudflare edge | Accepted |
 | [009](009-audit-hash-chain.md) | Append-only audit with hash chain: tamper-evident, not immutable | Accepted |
-| [010](010-evaluation-and-ci-gates.md) | Safety gates in CI use a scripted provider; model-quality evals are run and recorded locally | Accepted; Amendment 1 (M4 evaluation framework) proposed 2026-11-27, pending owner approval |
+| [010](010-evaluation-and-ci-gates.md) | Safety gates in CI use a scripted provider; model-quality evals are run and recorded locally | Accepted; Amendment 1 (M4 evaluation framework) accepted 2026-11-27 |
 | [011](011-async-deferred-to-cloudflare.md) | Synchronous local runs; Queues and Workflows come in M6+ | Accepted |
 | [012](012-rate-limiting-and-bounded-audit.md) | Rate limiting, bounded anonymous audit, pseudonymised audit records | Accepted |
 | [013](013-mcp-server-implementation.md) | Service Ops MCP server on SDK 2.x low-level server; fail-closed drafts; evidence integrity | Accepted, implemented (M2, `91f959b`) |
