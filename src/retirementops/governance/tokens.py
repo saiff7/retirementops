@@ -80,9 +80,22 @@ class TokenService:
     def issue(self, sub: str, scopes: frozenset[str]) -> str:
         return self._encode(sub, scopes, ACCESS, self._ttl, {})
 
-    def issue_agent_run(self, sub: str, scopes: frozenset[str], run: dict[str, object]) -> str:
-        """A short-lived token bound to one run. Only IdentityService should call this."""
-        return self._encode(sub, scopes, AGENT_RUN, self._run_ttl, {"run": run})
+    def issue_agent_run(
+        self,
+        sub: str,
+        scopes: frozenset[str],
+        run: dict[str, object],
+        ttl_seconds: int | None = None,
+    ) -> str:
+        """A short-lived token bound to one run. Only IdentityService should call this.
+
+        `ttl_seconds` can only shorten the run-token lifetime, never extend it."""
+        ttl = self._run_ttl
+        if ttl_seconds is not None:
+            if isinstance(ttl_seconds, bool) or not isinstance(ttl_seconds, int) or ttl_seconds < 1:
+                raise TokenError("invalid token lifetime")
+            ttl = min(ttl, timedelta(seconds=ttl_seconds))
+        return self._encode(sub, scopes, AGENT_RUN, ttl, {"run": run})
 
     def verify(self, token: str) -> TokenClaims:
         if not token or len(token.encode()) > MAX_TOKEN_BYTES:

@@ -61,6 +61,8 @@ class Settings(BaseSettings):
     ro_ollama_url: str = "http://127.0.0.1:11434"
     ro_ollama_model: str = "qwen3:8b"
     ro_ollama_timeout_seconds: float = 120.0
+    # Kill switch for new agent runs (threat model T-13). True: every new run ends in manual review.
+    ro_agent_kill_switch: bool = False
 
     ro_log_pepper: SecretStr
     ro_audit_pepper: (

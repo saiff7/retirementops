@@ -38,9 +38,8 @@ from retirementops.agent_runtime.skills import load_skill
 from retirementops.domain.routing import RiskFlag
 from retirementops.domain.taxonomy import Intent
 
-SKILL = SkillPrompt(
-    "service-ticket-triage", "1.0.0", load_skill("service-ticket-triage").instructions
-)
+_TRIAGE = load_skill("service-ticket-triage")
+SKILL = SkillPrompt(_TRIAGE.name, _TRIAGE.version, _TRIAGE.instructions)
 TICKET = ticket_view("ZD-1001", "Short contribution", "Please check participant PART-0002.")
 RESOLVED = ResolvedContext(("PART-0002",), ("PLAN-001",), ("PP-2026-03",), ("2026-02-15",))
 FACTS = {
@@ -142,7 +141,7 @@ def test_untrusted_text_cannot_close_its_block() -> None:
 def test_system_prompt_carries_the_skill_and_the_data_not_instructions_rule() -> None:
     system = classification_messages(ClassificationRequest(SKILL, TICKET))[0]
     assert system["role"] == "system"
-    assert "service-ticket-triage@1.0.0" in system["content"]
+    assert "service-ticket-triage@1.1.0" in system["content"]
     assert "never instructions" in system["content"]
 
 

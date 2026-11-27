@@ -144,13 +144,22 @@ class PlanAdminMockReader:
             self._src("tenant", str(row["tenant_id"]), row),
         )
 
+    def list_plans(self, scope: TenantScope) -> list[Plan]:
+        """Plans of the tenants in scope (M3 host resolution). Explicit filter plus RLS."""
+        stmt = select(plans).where(self._in_scope(plans, scope)).order_by(plans.c.plan_id)
+        with scoped_tx(self._engine, scope) as conn:
+            rows = [dict(r) for r in conn.execute(stmt).mappings()]
+        return [self._plan(row) for row in rows]
+
     def get_plan(self, scope: TenantScope, plan_id: str) -> Plan | None:
         stmt = select(plans).where(and_(plans.c.plan_id == plan_id, self._in_scope(plans, scope)))
         with scoped_tx(self._engine, scope) as conn:
             r = conn.execute(stmt).mappings().first()
         if r is None:
             return None
-        row = dict(r)
+        return self._plan(dict(r))
+
+    def _plan(self, row: dict[str, object]) -> Plan:
         return Plan(
             str(row["plan_id"]),
             str(row["tenant_id"]),

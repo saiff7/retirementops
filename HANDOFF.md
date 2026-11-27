@@ -9,20 +9,20 @@ Operations MCP server) went through three independent security reviews, with eve
 or explicitly accepted. The owner approved it, and it was committed as `91f959b`. The
 documentation recording that was committed separately as `f4d3349` and corrected in `3d281b6`.
 GitHub push status is unverified: no push has been verified and no fetch has been performed.
-The owner approved starting M3 on 2026-11-26; **M3 is in progress** (stages 1–5 of 7, uncommitted).
+The owner approved starting M3 on 2026-11-26; **M3 is in progress**: stages 1–5 committed as `1515ed2`, stage 6 committed as "M3 stage 6: orchestrator, host resolution and review fixes". Stage 7 has not started.
 
 ## Git
 
 | | |
 |---|---|
 | Branch | `main` (the only branch) |
-| Local commits | As of this update, oldest first: `ac9e36b`, `91f959b`, `f4d3349`, `3d281b6` (run `git log` for any later ones) |
+| Local commits | Oldest first: `ac9e36b`, `91f959b`, `f4d3349`, `3d281b6`, `b37d9c5`, `1515ed2`, then the stage 6 commit "M3 stage 6: orchestrator, host resolution and review fixes" (run `git log` for its hash and any later ones) |
 | Documentation correction commit | `3d281b64f0c35e9c1c1e733bd78cf58f02bc2a00`, "Docs: correct project status and handoff" (six documentation files; no source code, tests or SQL) |
 | Documentation commit | `f4d3349de364160a19af6551d53fb9d8ca564648`, "Docs: finalize M2 project handoff" (eight documentation files, including the migration 0005 docstring date; no source code, tests or SQL) |
 | M2 commit | `91f959b2110b8210a10efc3ad7e072c8e9cfae8b`, "M2: add hardened service operations MCP server" (69 files, +6,487 / −128) |
 | M0 + M1 commit | `ac9e36b47feab8b9a58f1c3c82add8cdc6bbf853`, "M0 + M1: design docs and synthetic business backend" |
 | Remote | `origin` = `github.com/saiff7/retirementops`. **Push status unverified:** no push has been verified and no fetch has been performed, so the local repository has no remote-tracking information. Whether GitHub holds any of these commits has not been checked. |
-| Working tree | When this was written, the only uncommitted change was a six-file follow-up documentation correction (`README.md`, `docs/implementation-plan.md`, `CURRENT_STATUS.md`, `HANDOFF.md`, `KNOWN_ISSUES.md`, `PROJECT_CONTEXT.md`), pending owner review. Run `git status` for the current state. |
+| Working tree | Clean after the stage 6 commit. Run `git status` for the current state. |
 
 Never commit `.env`, `keys/` or `.mcp.json` (all git-ignored). `scripts/check_no_secrets.py` must
 pass before any commit.
@@ -99,37 +99,42 @@ None critical, high or medium in security. See [KNOWN_ISSUES.md](KNOWN_ISSUES.md
 open items are that CI has no verified run on GitHub (OPEN-1) and that Actions are pinned to tags,
 not SHAs (OPEN-2).
 
-## M3 progress (2026-11-26, uncommitted)
+## M3 progress (2026-11-26)
 
-The owner approved starting M3. Stages 1–5 of 7 and the run-trace storage are implemented and
-tested in the working tree (692 passed, 1 opt-in live test skipped); nothing is committed. Details: CURRENT_STATUS.md "Remaining work" and the M3
-section of DECISIONS.md. Uncommitted files:
+The owner approved starting M3. Stages 1–5 and the run-trace storage are committed as
+`1515ed2` ("M3 stages 1-5: validator, run tokens, trace storage, skills, providers"). Stage 6, the
+orchestrator, was implemented, reviewed twice, fixed and committed as "M3 stage 6: orchestrator, host resolution and review fixes"
+(840 passed, 1 opt-in live test skipped, at commit time). Both M3 acceptance criteria pass. Both stage 6 reviews'
+important findings and safeguards are fixed (DECISIONS.md "Stage 6 review fixes"); the remaining
+minor findings are OPEN-9 and OPEN-10. New drafts record `draft-validator/2`. Stage 7 (developer skills)
+has not started. Details: CURRENT_STATUS.md and the M3 sections of DECISIONS.md.
 
-- new: `migrations/versions/0006_validator_pending_review.py`,
-  `migrations/versions/0007_agent_run_traces.py`, `src/retirementops/store/traces.py`,
-  `src/retirementops/agent_runtime/` (`skills.py`, `providers/{contracts,prompts,scripted,scripts,ollama}.py`),
-  `skills/service-ticket-triage/{SKILL,examples}.md`,
-  `skills/contribution-investigation/{SKILL,evidence-checklist}.md`,
-  `tests/unit/{test_skill_loader,test_providers}.py`, `tests/security/test_m3_agent_recorder.py`,
-  `src/retirementops/domain/routing.py`,
-  `src/retirementops/domain/draft_validator.py`, `src/retirementops/services/draft_validation.py`,
-  `tests/unit/test_routing_engine.py`, `tests/unit/test_draft_validator.py`,
-  `tests/unit/test_run_tokens.py`, `tests/security/test_m3_draft_validation.py`,
-  `tests/security/test_m3_run_binding.py`;
-- changed: `pyproject.toml` (import contracts), `.env.example`, `config.py`, `domain/authz.py`, `governance/tokens.py`, `services/{audit_service,
-  business,container,context,drafting,evidence,identity}.py`, `store/workflow.py`,
-  `mcp_servers/service_ops/tools.py`, six existing test files (deliberate expectation updates),
-  `README.md`, `docs/implementation-plan.md` and the five root documents.
+Stage 6 commit contents (29 files):
 
-The dev database is still at migration 0005 and was deliberately not upgraded. When approved,
+- new: `src/retirementops/agent_runtime/{orchestrator,mcp_client}.py`,
+  `tests/security/test_m3_stage6_review.py`,
+  `src/retirementops/domain/{run_state,risk_detectors}.py`,
+  `src/retirementops/services/{ticket_resolution,run_traces}.py`, `scripts/run_worker.py`,
+  `tests/integration/test_m3_orchestrator.py`, `tests/unit/test_run_state_and_detectors.py`;
+- changed (review fixes): `services/identity.py` (operator check, write-token lifetime),
+  `governance/tokens.py`, `domain/draft_validator.py` (content rules),
+  `skills/service-ticket-triage/SKILL.md` (version `1.1.0`), and tests
+  `tests/unit/{test_run_tokens,test_draft_validator,test_skill_loader,test_providers}.py`;
+- changed: `config.py` (kill switch), `connectors/{interfaces,planadmin_mock,payroll_mock}.py`
+  (`list_plans`, `list_pay_periods`), `services/container.py`, `agent_runtime/providers/prompts.py`,
+  `skills/service-ticket-triage/SKILL.md` (one sentence on `missing_evidence`, so the skill hash
+  changes), `tests/integration/test_mcp_tools.py` (made independent of test order, OPEN-4), and
+  the four root documents.
+
+The dev database is still at migration 0005 and was deliberately not upgraded. The worker was run
+against the migrated **test** database (`RO_DB_NAME=retirementops_test`). When approved,
 `scripts/db_upgrade.py` (keeps data) creates the `svc_agent_recorder` login and applies 0006–0007.
-The local `.env` gained `RO_PW_SVC_AGENT_RECORDER` via `scripts/dev_bootstrap.py`.
 
 ## Decisions awaiting approval
 
 1. Whether and when to push `main` to GitHub. No push has been verified; pushing would let CI run
    there (OPEN-1).
-2. When to commit the M3 stages, and when to upgrade the dev database (0005 → 0007).
+2. When to upgrade the dev database (0005 → 0007), and when to start M3 stage 7.
    (Decided 2026-11-26: run traces use the dedicated `svc_agent_recorder` role; see DECISIONS.md.)
 
 ## Exact next steps for another session
@@ -151,7 +156,7 @@ uv run ruff check src tests scripts migrations && uv run ruff format --check src
 
 3. Do not commit uncommitted changes, push or fetch without the owner's approval. Do not amend or
    rewrite `ac9e36b`, `91f959b`, `f4d3349` or `3d281b6`.
-4. **M3 is in progress (approved 2026-11-26).** Continue from stage 6, following the M3 section of
+4. **M3 is in progress (approved 2026-11-26).** Continue from stage 7 (developer skills) once the owner approves, following the M3 section of
    [docs/implementation-plan.md](docs/implementation-plan.md) and the M3 obligations in ADR-013:
    - run tokens with minimum scopes;
    - the validator before insert, re-allowing `PENDING_REVIEW` in a new migration that keeps the

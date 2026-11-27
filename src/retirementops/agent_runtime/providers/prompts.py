@@ -80,12 +80,19 @@ def tool_messages(req: ToolDecisionRequest) -> list[dict[str, str]]:
         ],
     }
     results = [{"tool": r.name, "ok": r.ok, "result": r.content} for r in req.results]
+    pending = ""
+    if req.results and req.results[-1].name == "host_evidence_check":
+        pending = (
+            "\n\nIMPORTANT: the host's evidence check found records still missing. Request the "
+            f"listed calls now, and answer done only when nothing is missing:\n{req.results[-1].content}"
+        )
     user = (
         f"{_ticket(req.ticket)}\n\n"
         f"Resolved references (use only these):\n{json.dumps(resolved, sort_keys=True)}\n\n"
         f"Tools you may call:\n{json.dumps(tools, sort_keys=True)}\n\n"
         f"Results so far:\n{json.dumps(results, sort_keys=True)}\n\n"
         f"You may make at most {req.calls_remaining} more calls. Return the tool-decision JSON."
+        f"{pending}"
     )
     return [_system(req.skill), {"role": "user", "content": user}]
 

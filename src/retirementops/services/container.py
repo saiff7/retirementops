@@ -28,6 +28,9 @@ from retirementops.services.identity import IdentityService
 from retirementops.services.payroll_ingest import PayrollIngestService
 from retirementops.services.policy import PolicyService
 from retirementops.services.request_guard import GuardConfig, RequestGuard
+from retirementops.services.run_traces import RunTraceService
+from retirementops.services.ticket_resolution import TicketResolutionService
+from retirementops.store.traces import RunTraceStore
 from retirementops.store.workflow import WorkflowStore
 
 
@@ -42,6 +45,8 @@ class Container:
     guard: RequestGuard
     policies: PolicyService
     drafting: DraftingService
+    resolution: TicketResolutionService
+    traces: RunTraceService
     log_pepper: bytes
     engines: dict[DbRole, Engine] = field(repr=False)
 
@@ -114,6 +119,8 @@ def build_container(
         tickets=TicketService(tickets),
         policies=PolicyService(kb, clock),
         drafting=drafting,
+        resolution=TicketResolutionService(tickets, planadmin, payroll),
+        traces=RunTraceService(RunTraceStore(engines[DbRole.AGENT_RECORDER])),
         plans=plans,
         contributions=contributions,
         payroll_ingest=PayrollIngestService(

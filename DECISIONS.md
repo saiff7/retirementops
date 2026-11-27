@@ -52,7 +52,7 @@ was decided, why, and what was rejected. Owner decisions are dated.
   (review Low-3), and `0003` was reformatted by ruff (whitespace only). No `upgrade()` body was
   changed in substance after being applied.
 
-## Implementation decisions inside M3 (stages 1–3, 2026-11-26, uncommitted)
+## Implementation decisions inside M3 (stages 1–3, 2026-11-26, committed in `1515ed2`)
 
 - **Validator decides the initial status, for every client.** `DraftingService` runs the
   validator before insert. Passing → `PENDING_REVIEW`; anything else → `NEEDS_MANUAL_REVIEW` with
@@ -77,7 +77,7 @@ was decided, why, and what was rejected. Owner decisions are dated.
 - **Routing.** Risk flags can only make the outcome more conservative. The engine reproduces
   every seeded ground-truth label (test). Confidence threshold 0.70 (configurable).
 
-## Implementation decisions inside M3 (stages 4–5, 2026-11-26, uncommitted)
+## Implementation decisions inside M3 (stages 4–5, 2026-11-26, committed in `1515ed2`)
 
 - **Skills** carry a small, strictly parsed frontmatter: `model_tools` (read-only tools offered to
   the model; never `search_tickets` or `get_ticket_details`), `host_actions` (write tools the host
@@ -92,6 +92,59 @@ was decided, why, and what was rejected. Owner decisions are dated.
   seed, thinking off, a per-call timeout and a loopback-only URL (no arbitrary URL fetching). The
   optional Anthropic adapter (ADR-005) is not built in M3. Default model `qwen3:8b`, pending the
   small comparison ADR-005 asks for.
+
+## Implementation decisions inside M3 (stage 6, 2026-11-26, committed with stage 6)
+
+- **Host resolves, model never supplies IDs.** Tenant, participant, plan and pay period come from
+  the ticket's own tenant (`TicketResolutionService`); deterministic detectors add injection,
+  closure, unsupported-action, restricted-pattern, cross-tenant, ambiguity and duplicate flags.
+  Two narrow connector reads were added for this (`list_plans`, `list_pay_periods`; existing
+  grants, explicit tenant filter plus RLS).
+- **Scope of automated drafting in M3:** contribution discrepancies only. Other intents, triage
+  flags, blocking findings and solved/closed tickets end in NEEDS_MANUAL_REVIEW. Every classified
+  run on an open ticket records a routing PROPOSAL (HUMAN_TRIAGE when manual review is needed).
+- **Host checks on model tool calls.** Fail closed: unlisted tool, reference outside the
+  resolution, oversized arguments, call/turn/model/wall-clock budgets, any tool error. Sequence is
+  enforced structurally (reads only in the evidence phase, batches executed in the skill's order,
+  write tools host-only after evidence is complete). A per-call prerequisite rule was tried and
+  dropped: with the real model it only burned turns and added no safety.
+- **The host's completeness check drives the evidence loop.** When the model stops early, the host
+  reports the missing records and the exact read calls that return them (built from its own
+  resolution, still checked). With this, `qwen3:8b` completed the live run reliably.
+- **The model sees no values from tool results**, only which records were retrieved; amounts reach
+  it solely as formatted facts from the deterministic finding (data-classification §2).
+- **Kill switch** (`RO_AGENT_KILL_SWITCH`): new runs end in manual review before any model call.
+
+## Stage 6 review fixes (2026-11-26/27, committed with stage 6)
+
+- **Who may start a run:** a human operator assigned to the ticket's tenant, re-read from the
+  directory, checked before the ticket is read and again before any model call
+  (`IdentityService.require_run_operator`). Refusals raise `Forbidden`, send nothing to the model,
+  write no trace and are audited as `agent_run.refused`.
+- **Two kinds of run token:** the token behind model-chosen calls is read-only
+  (`tickets:read`, `plans:read`, `payroll:read`). Each host action gets its own token with only
+  that action's scopes (plus the read scopes a draft needs to cite evidence), valid for 120 s
+  (`WRITE_TOKEN_TTL_SECONDS`; a requested lifetime can only shorten a run token, never extend it).
+- **Validator content rules, as `draft-validator/2`:** links and bare web addresses, email
+  addresses, phone numbers, promises of a future change to money or records ("the difference will
+  be refunded"), and instruction-like or approval text each fail validation with their own
+  value-free code. Ordinary service language passes ("we will update you", "our team will send
+  you a summary"). Instruction text uses a dedicated draft detector that matches affirmative
+  forms only, so "without review" and "cannot close this ticket" pass; the broader ticket
+  detectors are not reused. *Correction:* an earlier draft of this entry kept the version at
+  `draft-validator/1` as "additive"; that was wrong, because the same body could then be judged
+  differently under one label. Drafts validated before this change record `/1`. A unit test pins
+  each validator version to a fingerprint of its rules, so rules cannot change without a bump.
+- **Skill versions are pinned to content:** `service-ticket-triage` is `1.1.0` (its text changed in
+  stage 6); a unit test pins each `name@version` to its content hash, so text cannot change again
+  without a version bump.
+- **Trace failures are visible:** `agent_run.finished` records `trace_written`, a failed write adds
+  the reason `TRACE_NOT_WRITTEN` and emits `agent_run.trace_failed`.
+- **Guards:** a non-blocking lock is taken at the very start of `run()` and released only after
+  the run, proposal, trace and audit have finished, so a second run on the same instance (another
+  thread, or re-entrant) raises immediately. Genuine two-thread tests hold run A at the ticket
+  read, the model call and the trace write; they fail if the lock is removed. Non-scalar tool
+  arguments are refused as `host_refused_malformed_arguments`.
 
 ## Awaiting approval
 

@@ -5,7 +5,12 @@ A draft passes only if every checkable claim in its body is backed by host-fetch
 - every percentage and date token is a value from the finding or the resolved pay period;
 - only the resolved ticket, participant, plan and pay period identifiers appear; employee refs and
   tenant IDs never do;
-- it claims no action the system cannot take (corrected, refunded, closed, sent ...);
+- it claims no action the system cannot take (corrected, refunded, closed, sent ...) and promises
+  no future change to contributions, payroll records or money ("the difference will be
+  refunded"); ordinary service language ("we will update you") is fine;
+- it carries no links, email addresses or phone numbers (a reply never sends people elsewhere), and
+  no instruction-like text ("ignore previous instructions", "this reply is approved"), detected in
+  its affirmative forms only, so "without review" or "cannot close" pass;
 - it does not contradict the finding, and the finding does not block drafting.
 
 Problems carry a code and a value-free detail, so reports are safe to store and audit. A failing
@@ -23,7 +28,7 @@ from retirementops.domain.contributions import BLOCKING_STATUSES, ContributionFi
 from retirementops.domain.money import Money, format_money, format_percent
 from retirementops.domain.records import PayPeriod
 
-VALIDATOR_VERSION = "draft-validator/1"
+VALIDATOR_VERSION = "draft-validator/2"  # /2: content rules added in M3 stage 6
 MAX_BODY_CHARS = 10_000
 
 
@@ -44,6 +49,11 @@ class Problem(StrEnum):
     TENANT_ID_PRESENT = "TENANT_ID_PRESENT"
     UNSUPPORTED_ACTION_CLAIM = "UNSUPPORTED_ACTION_CLAIM"
     CONTRADICTS_FINDING = "CONTRADICTS_FINDING"
+    LINK_PRESENT = "LINK_PRESENT"
+    EMAIL_PRESENT = "EMAIL_PRESENT"
+    PHONE_PRESENT = "PHONE_PRESENT"
+    PROMISED_ACTION = "PROMISED_ACTION"
+    INSTRUCTION_TEXT_PRESENT = "INSTRUCTION_TEXT_PRESENT"
     EVIDENCE_MIXED_SUBJECTS = "EVIDENCE_MIXED_SUBJECTS"
     EVIDENCE_INCOMPLETE = "EVIDENCE_INCOMPLETE"
     EVIDENCE_SUBJECT_UNRESOLVED = "EVIDENCE_SUBJECT_UNRESOLVED"
@@ -238,7 +248,61 @@ _ACTION_CLAIMS = (
         r"(?:has been|have been|was|were|will be|is being)\s+"
         r"(?:issued|made|sent|processed|applied|scheduled|posted)\b"
     ),
-    re.compile(r"(?i)\bwe\s+will\s+(?:correct|refund|adjust|change|update|credit|deposit)\b"),
+    re.compile(r"(?i)\bwe\s+will\s+(?:correct|refund|adjust|credit|deposit)\b"),
+)
+# Promises are blocked only when they concern money or records (not "we will update you").
+_RECORDS = (
+    r"contributions?|deferrals?|(?:employer\s+)?match(?:es)?|amounts?|payroll(?:\s+(?:records?|rows?|"
+    r"files?))?|records?|rows?|accounts?|enrollments?|elections?|differences?|shortfalls?"
+    r"|overpayments?|underpayments?|balances?|variances?|refunds?|credits?|corrections?"
+    r"|adjustments?|deposits?|payments?"
+)
+_FUTURE_ACTIVE = (
+    r"fix|correct|adjust|refund|credit|reimburse|reverse|repay|pay|deposit|restore|recalculate"
+    r"|amend|change|update|resolve|make\s+up|true\s+up|reprocess|apply|issue"
+)
+_FUTURE_PASSIVE = (
+    r"fixed|corrected|adjusted|refunded|credited|reimbursed|reversed|repaid|paid|deposited|restored"
+    r"|recalculated|amended|changed|updated|resolved|made\s+up|trued\s+up|reprocessed|applied|issued"
+)
+_WILL = r"(?:will|shall|'ll|(?:is|are)\s+going\s+to)\s+(?:now\s+|soon\s+|then\s+)?"
+_PROMISES = (
+    # "the difference will be refunded", "your contribution will be fixed", "it will be corrected"
+    re.compile(rf"(?i)\b(?:{_RECORDS}|it|this|that)\s+{_WILL}(?:be|get)\s+(?:{_FUTURE_PASSIVE})\b"),
+    # "we'll correct the deferral", "payroll is going to adjust the row"
+    re.compile(
+        rf"(?i)\b{_WILL}(?:{_FUTURE_ACTIVE})\s+(?:(?:the|your|this|that|their|its)\s+)?"
+        rf"(?:\w+\s+){{0,2}}?(?:{_RECORDS})\b"
+    ),
+)
+_EMAIL = re.compile(r"[A-Za-z0-9._%+-]+@[A-Za-z0-9-]+(?:\.[A-Za-z0-9-]+)*\.[A-Za-z]{2,}")
+_URL = re.compile(r"(?i)\b(?:https?://|ftp://|www\.)\S+")
+_DOMAIN = re.compile(
+    r"(?i)(?<![@\w.-])(?:[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?\.)+"
+    r"(?:com|net|org|io|info|biz|co|us|uk|example|test|dev|app|xyz|ly|me|gov|edu)\b"
+)
+_PHONE = re.compile(
+    r"(?<![\w$.,])(?:\+?\d{1,3}[\s.-]?)?(?:\(\d{3}\)\s?|\d{3}[\s.-])\d{3}[\s.-]\d{4}(?!\w|[.,]\d)"
+    r"|(?<![\w$.,-])\d{3}-\d{4}(?![\w-]|[.,]\d)"
+)
+# Instruction-like text in a DRAFT (dedicated; the ticket detectors are deliberately broader).
+# Closure and review-skipping phrases count only in affirmative form: "cannot close this ticket"
+# and "without review" are ordinary service language.
+_NOT = r"(?<!not\s)(?<!cannot\s)(?<!can't\s)(?<!never\s)(?<!won't\s)"
+_INSTRUCTION_TEXT = re.compile(
+    r"(?i)\bignore\s+(?:all\s+|any\s+|your\s+|the\s+)?(?:previous|prior|above|earlier|preceding)\s+"
+    r"(?:instructions|rules|messages)\b"
+    r"|\b(?:system|developer)\s+(?:note|prompt|message|instruction)s?\b"
+    r"|\b(?:ai\s+)?assistant\s*:"
+    r"|<!--|-->"
+    r"|\byou\s+(?:are|have\s+been)\s+(?:now\s+)?authori[sz]ed\s+to\b"
+    r"|\b(?:this|the)\s+(?:reply|draft|message|response)\s+(?:is|has\s+been|was)\s+(?:pre-?)?approved\b"
+    r"|\bapproved\s+for\s+sending\b"
+    r"|\bno\s+(?:further\s+|human\s+)?review\s+(?:is\s+)?(?:needed|required)\b"
+    rf"|{_NOT}\b(?:skip|bypass)\s+(?:the\s+)?(?:human\s+)?review\b"
+    rf"|{_NOT}\b(?:please\s+)?(?:mark|set)\s+(?:this|the)\s+(?:ticket|case)\s+(?:as\s+)?"
+    r"(?:solved|closed|resolved)\b"
+    rf"|{_NOT}\b(?:please\s+)?close\s+(?:this|the)\s+(?:ticket|case)\s+(?:now|immediately)\b"
 )
 _SAYS_NO_DISCREPANCY = re.compile(
     r"(?i)\bno\s+(?:discrepancy|variance|difference|error)\b"
@@ -306,6 +370,9 @@ def validate_draft(body: str, truth: GroundTruth) -> ValidationReport:
     for pat in (_PARTICIPANT, _EMPLOYEE, _PLAN, _PERIOD, _TICKET, _TENANT):
         rest, _ = _blank(rest, pat)
     rest, iso_dates = _blank(rest, _ISO_DATE)
+    rest, phones = _blank(rest, _PHONE)  # after IDs and ISO dates, so their digits are not read
+    if phones:
+        add(Problem.PHONE_PRESENT, f"{len(phones)} phone number(s); replies must not include them")
     unsupported_dates = sum(1 for d in iso_dates if d not in truth.dates)
     if unsupported_dates:
         add(Problem.UNSUPPORTED_DATE, f"{unsupported_dates} date(s) not in the evidence")
@@ -330,6 +397,21 @@ def validate_draft(body: str, truth: GroundTruth) -> ValidationReport:
     bad_pct = sum(1 for p in pct if p.replace(" ", "") not in truth.percents)
     if bad_pct:
         add(Problem.UNSUPPORTED_PERCENT, f"{bad_pct} percentage(s) not produced by the finding")
+
+    no_email, emails = _blank(body, _EMAIL)
+    if emails:
+        add(
+            Problem.EMAIL_PRESENT, f"{len(emails)} email address(es); replies must not include them"
+        )
+    if _URL.search(no_email) or _DOMAIN.search(no_email):
+        add(Problem.LINK_PRESENT, "the draft contains a link or web address")
+    if any(p.search(body) for p in _PROMISES):
+        add(Problem.PROMISED_ACTION, "the draft promises a change to money or records")
+    if _INSTRUCTION_TEXT.search(body):
+        add(
+            Problem.INSTRUCTION_TEXT_PRESENT,
+            "the draft contains instruction-like or approval text (possibly echoed from a ticket)",
+        )
 
     claims = sum(1 for pat in _ACTION_CLAIMS if pat.search(body))
     if claims:

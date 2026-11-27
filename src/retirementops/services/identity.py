@@ -95,10 +95,34 @@ class IdentityService:
             and tenant_id in op.tenant_ids
         )
 
+    def require_run_operator(self, principal: Principal, tenant_id: str | None = None) -> None:
+        """Only a human operator (re-read from the directory now) may start an agent run, and,
+        given a tenant, only for a tenant they are assigned to. Checked before any ticket content
+        reaches a model (architecture.md §2: operators start runs)."""
+        op = self._directory.get(principal.principal_id)
+        allowed = (
+            principal.is_human
+            and principal.run is None
+            and Role.OPERATOR in principal.roles
+            and op is not None
+            and op.active
+            and op.kind == "human"
+            and Role.OPERATOR in _roles(op)
+            and (tenant_id is None or tenant_id in op.tenant_ids)
+        )
+        if not allowed:
+            raise Forbidden("only a human operator assigned to the ticket's tenant can start a run")
+
     def issue_agent_run_token(
-        self, operator: Principal, binding: RunBinding, scopes: frozenset[Scope]
+        self,
+        operator: Principal,
+        binding: RunBinding,
+        scopes: frozenset[Scope],
+        *,
+        ttl_seconds: int | None = None,
     ) -> str:
-        """Mint a run token for `binding`. Called by the trusted orchestrator host, in process."""
+        """Mint a run token for `binding`. Called by the trusted orchestrator host, in process.
+        `ttl_seconds` may only shorten the default run-token lifetime."""
         if (
             not operator.is_human
             or operator.run is not None
@@ -115,7 +139,7 @@ class IdentityService:
             raise Forbidden("the agent service principal is not available")
         try:
             return self._tokens.issue_agent_run(
-                AGENT_USER_ID, frozenset(s.value for s in scopes), binding.as_claims()
+                AGENT_USER_ID, frozenset(s.value for s in scopes), binding.as_claims(), ttl_seconds
             )
         except TokenError as exc:  # e.g. no private key configured in this process
             raise Forbidden("this process cannot mint run tokens") from exc

@@ -26,7 +26,7 @@ TRIAGE_SECTIONS = (
 
 def test_service_ticket_triage_loads_with_minimum_permissions() -> None:
     s = load_skill("service-ticket-triage")
-    assert s.skill_version == "service-ticket-triage@1.0.0"
+    assert s.skill_version == "service-ticket-triage@1.1.0"
     assert s.run_scopes == AGENT_RUN_SCOPES
     assert set(s.host_actions) == {"create_reply_draft", "propose_ticket_assignment"}
     assert "search_tickets" not in s.model_tools and "create_reply_draft" not in s.model_tools
@@ -41,6 +41,23 @@ def test_triage_skill_has_every_section_the_spec_requires() -> None:
     assert (SKILLS_ROOT / "service-ticket-triage" / "examples.md").is_file()
     for example in ("Good draft", "Escalation", "Refusing unsupported claims"):
         assert example in (SKILLS_ROOT / "service-ticket-triage" / "examples.md").read_text()
+
+
+# Content pins: a skill's text may not change without a new version (drafts and runs record the
+# version; runs also record this hash). If this fails, bump `version:` and update the pin.
+PINNED = {
+    "service-ticket-triage@1.1.0": "233864767b0becbfa6c970ea3db7ea7ab7c5696506bc4dc48726fb4c75b7f0a3",
+    "contribution-investigation@1.0.0": (
+        "eff8ffe053c490cacf82af09fd9a6280f418f2aeb2b131c4a8e0cecccd21a1b4"
+    ),
+}
+
+
+@pytest.mark.parametrize("name", ["service-ticket-triage", "contribution-investigation"])
+def test_skill_content_is_pinned_to_its_version(name: str) -> None:
+    s = load_skill(name)
+    assert s.skill_version in PINNED, f"new version {s.skill_version}: add its pin"
+    assert s.sha256 == PINNED[s.skill_version], "skill content changed: bump its version"
 
 
 def test_contribution_investigation_is_read_only() -> None:
@@ -88,7 +105,7 @@ def test_hash_changes_when_any_file_changes(root: Path) -> None:
             "run_scopes: [tickets:read, plans:read, payroll:read, drafts:write]",
             "run_scopes: [tickets:read]",
         ),
-        ("version: 1.0.0", "version: latest"),
+        ("version: 1.1.0", "version: latest"),
         ("name: service-ticket-triage", "name: other-skill"),
         ("uses: [contribution-investigation]", "uses: contribution-investigation"),
         ("uses: [contribution-investigation]", "uses: [contribution-investigation]\nextra: x"),

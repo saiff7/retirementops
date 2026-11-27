@@ -480,7 +480,9 @@ def test_drafts_refused_for_closed_tickets_and_restricted_text(
 def test_propose_assignment_creates_proposal_only_and_deduplicates(
     mcp_call: McpCall, owner_engine: Engine, dataset: Dataset
 ) -> None:
-    tid = _ordinary_ticket(dataset, "TEN-COBALT", set())
+    with owner_engine.connect() as conn:  # shared test DB (OPEN-4): avoid tickets other tests used
+        used = {r[0] for r in conn.execute(text("SELECT ticket_id FROM app.action_proposals"))}
+    tid = _ordinary_ticket(dataset, "TEN-COBALT", used)
     args = {"ticket_id": tid, "target_queue": "PAYROLL_OPERATIONS", "rationale": "Payroll issue"}
     first = mcp_call("op.casey", "propose_ticket_assignment", args)["data"]
     again = mcp_call("op.casey", "propose_ticket_assignment", {**args, "rationale": "retry"})[

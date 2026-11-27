@@ -1,6 +1,6 @@
 ---
 name: service-ticket-triage
-version: 1.0.0
+version: 1.1.0
 description: Classify a plan-sponsor service ticket, gather read-only evidence and draft a reply for human review. Fictional demo; synthetic data only.
 model_tools: [get_plan_details, get_participant_enrollment, get_applicable_plan_rule, get_payroll_contributions, get_policy_snippets]
 host_actions: [create_reply_draft, propose_ticket_assignment]
@@ -93,7 +93,8 @@ Tool decision (step 4):
  "done": false}
 ```
 
-At most 6 calls per answer. Set `"done": true` with no calls when you have the evidence.
+At most 6 calls per answer. Set `"done": true` with no calls when you have the evidence. If
+the host answers with `missing_evidence`, request the tools that return those records.
 
 Draft (step 6):
 

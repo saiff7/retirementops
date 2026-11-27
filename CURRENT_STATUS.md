@@ -9,7 +9,7 @@ _Last updated: 2026-11-26 (after the M2 commit and its documentation commits `f4
 | M0 Discovery and design | Done, approved | `ac9e36b` |
 | M1 Synthetic business backend | Done, approved | `ac9e36b` |
 | M2 Service Operations MCP server | Done: completed, reviewed three times, approved and committed | `91f959b` |
-| M3 First skill and worker | **In progress** (owner approved the start on 2026-11-26): stages 1–5 of 7 implemented and tested, not committed | — |
+| M3 First skill and worker | **In progress** (owner approved the start on 2026-11-26): stages 1–5 committed (`1515ed2`); stage 6 committed ("M3 stage 6: orchestrator, host resolution and review fixes", the commit after `1515ed2`); stage 7 not started | `1515ed2` + stage 6 |
 | M4–M8 | Not started | — |
 
 ## Repository state
@@ -26,6 +26,10 @@ _As recorded on 2026-11-26. Run `git log` and `git status` for the current state
   - `3d281b64f0c35e9c1c1e733bd78cf58f02bc2a00`, "Docs: correct project status and handoff". It
     corrects the M2, M3 and GitHub status wording in six documentation files; no source code, tests
     or SQL changed.
+  - `b37d9c5b105bec5d7e1d4fdffb4fc1ca7dd26aae`, "Docs: record documentation commit 3d281b6".
+  - `1515ed28239ed0d81287acf16a2cb48cb9e47a38`, "M3 stages 1-5: validator, run tokens, trace
+    storage, skills, providers" (52 files).
+  - The stage 6 commit, "M3 stage 6: orchestrator, host resolution and review fixes" (29 files; run `git log -1` for its hash).
 - **GitHub push status is unverified.** `origin` is configured, but no push has been verified and no
   fetch has been performed, so the local repository has no remote-tracking information about
   GitHub. Whether GitHub holds any of these commits has not been checked.
@@ -63,11 +67,17 @@ _As recorded on 2026-11-26. Run `git log` and `git status` for the current state
 
 CI has **no verified run** on GitHub: no push has been verified and no CI result has been observed.
 
-### M3 work in progress (2026-11-26, uncommitted working tree)
+### M3 results (2026-11-26/27; stages 1–5 in `1515ed2`, stage 6 in the stage 6 commit)
 
 | Check | Result |
 |---|---|
-| Full test suite | **692 passed, 0 failed, 1 skipped** (the opt-in live Ollama test) |
+| Full test suite | **840 passed, 0 failed, 1 skipped** (the opt-in live Ollama test), after both stage 6 reviews' fixes |
+| Second review fixes | Whole-run non-blocking lock (three genuine two-thread tests, shown to fail without it); validator `draft-validator/2` (money/record promises only, dedicated affirmative-only instruction detector; 21 malicious examples caught, 11 legitimate replies pass) with a rules-fingerprint pin |
+| Stage 6 review fixes | Operator-only runs (refused before any model call), read-only evidence token plus 120 s host write tokens, validator rules for links/emails/phones/promises/instruction text, skill `1.1.0` with content pins, audited trace failures, reentrancy and malformed-argument guards: 12 end-to-end regression tests plus unit tests |
+| M3 acceptance 1 | Seeded discrepancy ticket (ZD-1005, one-cent shortfall) runs RECEIVED → … → PENDING_REVIEW with the correct finding, a validated draft, a routing proposal and a stored trace |
+| M3 acceptance 2–3 | Invented amount, cross-tenant call, unlisted tool, close-ticket request, malformed JSON and timeout each end in NEEDS_MANUAL_REVIEW; mock-system snapshots unchanged for every run |
+| Seed sweep | Every seeded contribution ticket reaches its labelled outcome (state, queue, finding) with the scripted model |
+| Live local model | `qwen3:8b` on ZD-1005 against the test database: 3 of 3 runs reached PENDING_REVIEW with validator-passed drafts, before and after the review fixes (a smoke check, not an evaluation) |
 | Live Ollama check | `RO_OLLAMA_LIVE=1`: 1 passed with `qwen3:8b` (schema-valid classification, digest recorded) |
 | Ruff lint and format, mypy, import contracts | Clean; 6 contracts kept (new: agent runtime never touches connectors, store or DB) |
 | Migration round trips | Pass, including 0006 ↔ 0005 and 0007 ↔ 0006 (grants revoked on the way down) |
@@ -79,7 +89,7 @@ CI has **no verified run** on GitHub: no push has been verified and no CI result
 
 1. Owner decision on pushing `main` to GitHub, which would let CI run there (OPEN-1); see
    [HANDOFF.md](HANDOFF.md). Requires the owner's approval.
-2. **M3, in progress** ([plan](docs/implementation-plan.md)). Done and tested (uncommitted):
+2. **M3, in progress** ([plan](docs/implementation-plan.md)). Stages 1–5 committed as `1515ed2`:
    - stage 1: routing rules engine (`domain/routing.py`) and draft validator (`domain/draft_validator.py`);
    - stage 2: migration 0006 re-allows `PENDING_REVIEW` only for a validator-passed draft; every
      draft is validated server-side before insert (`services/draft_validation.py`);
@@ -92,7 +102,12 @@ CI has **no verified run** on GitHub: no push has been verified and no CI result
    - stage 5: the `ModelProvider` contract, prompt construction, `ScriptedProvider` with the M3
      adversarial scripts, and a loopback-only `OllamaProvider` (one live call verified locally).
 
-   Remaining: stage 6 orchestrator (host resolution and detectors, budgets, trace writing, CLI,
-   end-to-end acceptance), stage 7 developer skills under `.claude/skills/`.
+   - stage 6 (committed): the orchestrator (`agent_runtime/orchestrator.py`) with the run state
+     machine, host-side resolution and risk detectors (`services/ticket_resolution.py`,
+     `domain/risk_detectors.py`), host checks on every model-proposed call, budgets, a kill switch,
+     the in-process MCP client, trace writing as `svc_agent_recorder`, audit, and
+     `scripts/run_worker.py`. **Both M3 acceptance criteria pass** (see the results below).
+
+   Remaining: stage 7 developer skills under `.claude/skills/`.
 
 Open risks and debt: [KNOWN_ISSUES.md](KNOWN_ISSUES.md).

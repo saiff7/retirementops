@@ -91,6 +91,17 @@ class PayrollMockReader:
     def __init__(self, engine: Engine, clock: Clock = utc_now) -> None:
         self._engine, self._clock = engine, clock
 
+    def list_pay_periods(self) -> list[PayPeriod]:
+        """The shared pay-period calendar (not tenant data), for M3 host resolution."""
+        with scoped_tx(self._engine, TenantScope(frozenset())) as conn:
+            rows = [
+                dict(r)
+                for r in conn.execute(
+                    select(pay_periods).order_by(pay_periods.c.period_end)
+                ).mappings()
+            ]
+        return [self._period(row) for row in rows]
+
     def get_pay_period(self, pay_period_id: str) -> PayPeriod | None:
         # Pay periods are a shared calendar, not tenant data; an empty scope is fine.
         with scoped_tx(self._engine, TenantScope(frozenset())) as conn:
@@ -103,7 +114,9 @@ class PayrollMockReader:
             )
         if r is None:
             return None
-        row = dict(r)
+        return self._period(dict(r))
+
+    def _period(self, row: dict[str, object]) -> PayPeriod:
         return PayPeriod(
             pay_period_id=str(row["pay_period_id"]),
             period_start=_d(row["period_start"]),

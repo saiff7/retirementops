@@ -257,3 +257,65 @@ def test_plain_agent_access_token_still_has_no_tenants(
 def test_binding_round_trips_through_claims() -> None:
     assert RunBinding.from_claims(BINDING.as_claims()) == BINDING
     assert RunBinding.from_claims({**BINDING.as_claims(), "queue": None}).permitted_queue is None
+
+
+# ---------------------------------------------------------------- stage 6 review fixes
+@pytest.mark.parametrize(("ttl", "expected"), [(120, 120), (600, 600), (10_000, 600)])
+def test_ttl_can_only_shorten_a_run_token(
+    tokens: TokenService, keypair: tuple[bytes, bytes], ttl: int, expected: int
+) -> None:
+    claims = _decode(
+        tokens.issue_agent_run(
+            AGENT_USER_ID, frozenset({"tickets:read"}), BINDING.as_claims(), ttl
+        ),
+        keypair,
+    )
+    assert int(claims["exp"]) - int(claims["iat"]) == expected  # type: ignore[call-overload]
+
+
+@pytest.mark.parametrize("ttl", [0, -5, True, 1.5])
+def test_invalid_ttl_is_refused(tokens: TokenService, ttl: object) -> None:
+    from retirementops.governance.tokens import TokenError
+
+    with pytest.raises(TokenError):
+        tokens.issue_agent_run(AGENT_USER_ID, frozenset(), BINDING.as_claims(), ttl)  # type: ignore[arg-type]
+
+
+def test_operator_check_accepts_an_assigned_operator(
+    identity: IdentityService, tokens: TokenService
+) -> None:
+    op = _operator(identity, tokens)
+    identity.require_run_operator(op)
+    identity.require_run_operator(op, "TEN-ALDER")
+
+
+@pytest.mark.parametrize(
+    "change",
+    [
+        lambda u: replace(u, active=False),
+        lambda u: replace(u, roles=("reviewer",)),
+        lambda u: replace(u, tenant_ids=("TEN-BIRCH",)),
+    ],
+    ids=["deactivated", "lost-operator-role", "lost-tenant"],
+)
+def test_operator_check_rereads_the_directory(
+    identity: IdentityService, tokens: TokenService, directory: FakeDirectory, change: object
+) -> None:
+    op = _operator(identity, tokens)  # authenticated while still authorised
+    directory.users["op.alex"] = change(USERS["op.alex"])  # type: ignore[operator]
+    with pytest.raises(Forbidden):
+        identity.require_run_operator(op, "TEN-ALDER")
+
+
+def test_operator_check_refuses_reviewers_agents_and_other_tenants(
+    identity: IdentityService, tokens: TokenService
+) -> None:
+    with pytest.raises(Forbidden):
+        identity.require_run_operator(_operator(identity, tokens, "rev.sam"))
+    agent = identity.authenticate(
+        identity.issue_agent_run_token(_operator(identity, tokens), BINDING, AGENT_RUN_SCOPES)
+    )
+    with pytest.raises(Forbidden):
+        identity.require_run_operator(agent)
+    with pytest.raises(Forbidden):
+        identity.require_run_operator(_operator(identity, tokens), "TEN-COBALT")
